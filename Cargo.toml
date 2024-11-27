@@ -1,0 +1,13 @@
+[package]
+name = "aoc2023"
+version = "0.1.0"
+authors = ["zsacul <zsacul@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aoc-cache = "0.2.2"
+rand = "0.8.5"
+rustc-hash = "1.1.0"
+
