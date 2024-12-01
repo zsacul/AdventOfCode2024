@@ -65,6 +65,7 @@ fn get_data(day:i32)->String
 }
 */
 
+#[allow(unused)]
 fn load_data()
 {
     //let day1_data = get(MY_COOKIE, get_data(1));

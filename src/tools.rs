@@ -9,7 +9,7 @@ pub fn read_1d_i32(path:&str)->Vec<i32>
 {
     let mut res:Vec<i32> = vec![];
     if let Ok(lines) = read_lines(path) {
-        for line in lines.flatten() 
+        for line in lines.map_while(Result::ok)
         {
             res.push(line.parse::<i32>().unwrap());
         }
@@ -22,7 +22,7 @@ pub fn read_1d_i64(path:&str)->Vec<i64>
 {
     let mut res:Vec<i64> = vec![];
     if let Ok(lines) = read_lines(path) {
-        for line in lines.flatten() 
+        for line in lines.map_while(Result::ok)
         {
             res.push(line.parse::<i64>().unwrap());
         }
@@ -35,7 +35,7 @@ pub fn read_1d_string(path:&str)->Vec<String>
 {
     let mut res:Vec<String> = vec![];
     if let Ok(lines) = read_lines(path) {
-        for line in lines.flatten() 
+        for line in lines.map_while(Result::ok)
         {
             res.push(line);
         }

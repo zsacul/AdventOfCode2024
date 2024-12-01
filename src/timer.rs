@@ -1,5 +1,5 @@
 use core::f32;
-use std::time::{SystemTime};
+use std::time::SystemTime;
 
 pub struct Timer {
     timer : SystemTime

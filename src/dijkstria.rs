@@ -29,6 +29,7 @@ impl PartialOrd for State {
 }
 
 // Each node is represented as a `usize`, for a shorter implementation.
+#[allow(unused)]
 #[derive(Copy, Clone, Debug)]
 pub struct Edge {
     pub node: usize,
@@ -41,7 +42,8 @@ pub struct Edge {
 // to each node. This implementation isn't memory-efficient as it may leave duplicate
 // nodes in the queue. It also uses `usize::MAX` as a sentinel value,
 // for a simpler implementation.
-pub fn shortest_path(adj_list: &Vec<Vec<Edge>>, start: usize, goal: usize) -> Option<usize> {
+#[allow(unused)]
+pub fn shortest_path(adj_list: &[Vec<Edge>], start: usize, goal: usize) -> Option<usize> {
     // dist[node] = current shortest distance from `start` to `node`
     let mut dist: Vec<_> = (0..adj_list.len()).map(|_| usize::MAX).collect();
 

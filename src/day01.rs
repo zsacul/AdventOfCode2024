@@ -20,30 +20,27 @@ pub fn part1(data:&[String])->usize
 
     v1.iter()
       .enumerate()
-      .map(|(i,n)| v1[i].abs_diff(v2[i]))
+      .map(|(i,_)| v1[i].abs_diff(v2[i]))
       .sum::<usize>()
 }
 
 pub fn part2(data:&[String])->usize
 {
-    let mut v1 = vec![];
-    let mut h = HashMap::new();
+    let mut v = vec![];
+    let mut hash = HashMap::new();
 
     data.iter()
         .for_each(|s| 
             {
                 let n= tools::split_to_usize(s,"   ");
-                v1.push(n[0]);
-
-
-                let count = h.get(&n[1]).unwrap_or(&0);
-                h.insert(n[1], count+1);
+                v.push(n[0]);
+                hash.entry(n[1]).and_modify(|e| *e+=1).or_insert(1);
             }
         );
 
-    v1.iter()
-      .map(|n| (n*h.get(&n).unwrap_or(&0)) as usize)
-      .sum()
+    v.iter()
+     .map(|n| (n*hash.get(n).unwrap_or(&0)))
+     .sum()
 }
 
 #[allow(unused)]
