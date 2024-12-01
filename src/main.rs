@@ -1,7 +1,7 @@
 use timer::Timer;
-use aoc_cache::get;
+//use aoc_cache::get;
 // my.cookie is a file containing the cookie string.
-const MY_COOKIE: &str = include_str!("my.cookie");
+//const MY_COOKIE: &str = include_str!("my.cookie");
 
 mod tools;
 mod dijkstria;
@@ -38,6 +38,7 @@ mod day01;
 //mod day24;
 //mod day25;
 
+/*
 fn get_from_web(day:i32)->String
 {
     // my.cookie is a file containing the cookie string.
@@ -62,17 +63,18 @@ fn get_data(day:i32)->String
 
     tools::read_1d_string(file)
 }
+*/
 
 fn load_data()
 {
-    let day1_data = get(MY_COOKIE, get_data(1));
-    day01::solve(&day1_data);
+    //let day1_data = get(MY_COOKIE, get_data(1));
+    //day01::solve(&day1_data);
 }
 
 fn main() {
     {
         let _timer = Timer::new();
-        let day1_data = get_data(1);
+        let day1_data = tools::read_1d_string("data/day01.txt");
         day01::solve(&day1_data);
     }
 /*
