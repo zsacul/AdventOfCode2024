@@ -1,7 +1,4 @@
 use timer::Timer;
-//use aoc_cache::get;
-// my.cookie is a file containing the cookie string.
-//const MY_COOKIE: &str = include_str!("my.cookie");
 
 mod tools;
 mod dijkstria;
@@ -13,7 +10,7 @@ mod vec2;
 mod vec3;
 mod vec3f;
 mod day01;
-//mod day02;
+mod day02;
 //mod day03;
 //mod day04;
 //mod day05;
@@ -38,53 +35,27 @@ mod day01;
 //mod day24;
 //mod day25;
 
-/*
-fn get_from_web(day:i32)->String
-{
-    // my.cookie is a file containing the cookie string.
-    const MY_COOKIE: &str = include_str!("my.cookie");
-    let input: Result<String, aoc_cache::Error> = // Grabs from web if
-    get(              // it's the first run
-        "https://adventofcode.com/2022/day/1/input", MY_COOKIE);
 
-}
 
-fn get_data(day:i32)->String
-{
-    let path = format!("https://adventofcode.com/2022/day/{day}/input");
-    let file = format!("data/day{:02}.txt",day);
-    dbg!(&path);
-    dbg!(&file);
-    
-    //if file exists return it
-    if !std::path::Path::new(&file).exists() {
-        return file;
-    }
 
-    tools::read_1d_string(file)
-}
-*/
 
-#[allow(unused)]
-fn load_data()
-{
-    //let day1_data = get(MY_COOKIE, get_data(1));
-    //day01::solve(&day1_data);
-}
 
 fn main() {
+
+/*
     {
         let _timer = Timer::new();
         let day1_data = tools::read_1d_string("data/day01.txt");
         day01::solve(&day1_data);
     }
-/*
+*/    
     {
         let _timer = Timer::new();
         let day2_data  = tools::read_1d_string("data/day02.txt");
         day02::solve(&day2_data);
     }
-
+    
+/*
     {
         let _timer = Timer::new();
         let day3_data  = tools::read_1d_string("data/day03.txt");

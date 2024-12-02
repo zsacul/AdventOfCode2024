@@ -1,5 +1,5 @@
 [package]
-name = "aoc2023"
+name = "aoc2024"
 version = "0.1.0"
 authors = ["zsacul <zsacul@gmail.com>"]
 edition = "2021"
@@ -8,5 +8,3 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
-rustc-hash = "1.1.0"
-
