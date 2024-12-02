@@ -1,37 +1,26 @@
 fn valid(t:Vec<i32>)->bool
 {
-    let mut same = 0;
- 
-    for i in 0..t.len()-1
-    {
-        let d = t[i+1]- t[i];
-        if !(d.abs()>=1 && d.abs()<=3 && (d.signum()==same || same==0))
+    let mut same = None;
+
+    t.windows(2)
+     .all(|t|
         {
-            return false;
+            let dist = t[1] - t[0];
+            if same.is_none() { same = Some(dist.signum()); }
+            (1..=3).contains(&dist.abs()) && Some(dist.signum())==same         
         }
-        same = d.signum();
-    }
-    true
+    )
 }
 
-fn ok(s:&String,sec:bool)->bool
+fn ok(s:&str,second:bool)->bool
 {
     let tab = s.split(" ").map(|a| a.parse().unwrap()).collect::<Vec<i32>>();
 
-    if sec
+    if second
     {
-        for i in 0..tab.len()
-        {
-            let mut t = tab.clone();
-            t.remove(i);
-
-            if valid(t)            
-            {
-                return true;
-            }
-        }
-
-        false
+        (0..tab.len()).any(|i|
+            valid(tab[..i].iter().chain(tab[i+1..].iter()).copied().collect())
+        )
     }    
       else 
     {
@@ -74,7 +63,6 @@ fn test1()
     ];
     assert_eq!(part1(&v),2);
 }
-
 
 #[test]
 fn test2()

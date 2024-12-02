@@ -11,7 +11,7 @@ mod vec3;
 mod vec3f;
 mod day01;
 mod day02;
-//mod day03;
+mod day03;
 //mod day04;
 //mod day05;
 //mod day06;
@@ -48,20 +48,21 @@ fn main() {
         let day1_data = tools::read_1d_string("data/day01.txt");
         day01::solve(&day1_data);
     }
-*/    
+
+    */    
     {
         let _timer = Timer::new();
         let day2_data  = tools::read_1d_string("data/day02.txt");
         day02::solve(&day2_data);
     }
-    
-/*
+
     {
         let _timer = Timer::new();
         let day3_data  = tools::read_1d_string("data/day03.txt");
         day03::solve(&day3_data);
     }
-    
+        
+/*
     {
         let _timer = Timer::new();
         let day4_data  = tools::read_1d_string("data/day04.txt");
