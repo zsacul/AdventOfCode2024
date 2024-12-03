@@ -49,12 +49,12 @@ fn main() {
         day01::solve(&day1_data);
     }
 
-    */    
     {
-        let _timer = Timer::new();
-        let day2_data  = tools::read_1d_string("data/day02.txt");
-        day02::solve(&day2_data);
-    }
+    let _timer = Timer::new();
+    let day2_data  = tools::read_1d_string("data/day02.txt");
+    day02::solve(&day2_data);
+}
+*/    
 
     {
         let _timer = Timer::new();
