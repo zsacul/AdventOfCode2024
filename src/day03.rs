@@ -1,3 +1,5 @@
+use super::pixoo;
+
 fn token(s:&str,i:usize,token:&str)->usize
 {
     if i<s.len() && s[i..].starts_with(token)
@@ -12,20 +14,22 @@ fn token(s:&str,i:usize,token:&str)->usize
 
 fn number(s:&str,i:usize,max_size:usize)->usize
 {
-    let mut i2 = i;
+    let mut j = i;
 
-    while i2-i<=max_size && i2<s.len() && s.chars().nth(i2).unwrap_or(' ').is_digit(10)
+    while j-i<=max_size && 
+          j  < s.len() && 
+          s.chars().nth(j).unwrap_or(' ').is_ascii_digit()
     {
-        i2+=1;
+        j+=1;
     }
 
-    i2
+    j
 }
 
 fn compute(line:String,part_two:bool)->usize
 {
     let s = line.as_str();
-    let mut i=0;
+    let mut i = 0;
     
     let mut enabled = true;
     let mut sum = 0;
@@ -34,19 +38,19 @@ fn compute(line:String,part_two:bool)->usize
     {        
         if part_two
         {
-            let itrue = token(s,i,"do()");
-            if itrue>i  { enabled = true;  i = itrue-1;  }
+            let itrue = token(s,i,"do()"   );
+            if itrue >i { enabled = true;  i = itrue -1; }
             
             let ifalse = token(s,i,"don't()");        
             if ifalse>i { enabled = false; i = ifalse-1; }
         }
         
         
-        let i2 = token(s,i,"mul(");
-        let i3 = number(s,i2,3);
-        let i4 = token(s,i3,",");
-        let i5 = number(s,i4,3);
-        let i6 = token(s,i5,")");
+        let i2 =  token(s,i ,"mul(");
+        let i3 = number(s,i2,     3);
+        let i4 =  token(s,i3,   ",");
+        let i5 = number(s,i4,     3);
+        let i6 =  token(s,i5,   ")");
 
         if i2>i && i3>i2 && i4>i3 && i5>i4 && i6>i5
         {
@@ -55,8 +59,8 @@ fn compute(line:String,part_two:bool)->usize
 
             if n1>0 && n2>0 && enabled
             {
-                sum+=n1*n2;
-                i = i6-1;
+                sum+= n1*n2;
+                i   = i6-1;
             }
         }
         
@@ -66,7 +70,7 @@ fn compute(line:String,part_two:bool)->usize
 }
 
 pub fn part1(data:&[String])->usize
-{        
+{     
     compute(data.join(""), false)
 }
 
@@ -79,8 +83,8 @@ pub fn part2(data:&[String])->usize
 pub fn solve(data:&[String])
 {    
     println!("Day3");
-    println!("part1:{}",part1(data));
-    println!("part2:{}",part2(data));
+    println!("part1: {}",part1(data));
+    println!("part2: {}",part2(data));
 }
 
 #[test]

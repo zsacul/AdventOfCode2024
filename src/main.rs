@@ -1,6 +1,9 @@
+use std::{thread::sleep, time::Duration};
+
 use timer::Timer;
 
 mod tools;
+mod pixoo;
 mod dijkstria;
 //use std::thread;
 //mod cycliclist;
@@ -35,12 +38,36 @@ mod day03;
 //mod day24;
 //mod day25;
 
+use divoom::*;
+use tokio; // Add this if not already in your dependencies
 
 
+async fn pixoo_test_text2()
+{
+    let pixoo = PixooClient::new("192.168.8.113").unwrap();
+        
+    // Load the resource.
+    //let frames = DivoomAnimationResourceLoader::from_gif_file("c:/rust/AdventOfCode/AdventOfCode2024/target/aoc_output.gif").unwrap();
+    let frames = DivoomAnimationResourceLoader::from_gif_file("c:/Grid64x64/data/kn2.gif").unwrap();
 
+    // Build animation with 16 pixel canvas and 100ms frame play speed.
+    let builder = DivoomAnimationBuilder::new(64, Duration::from_millis(100)).unwrap();
+    let animation = builder.draw_frames(&frames, 0).build();
 
+    // Send to device here.
+    let res = pixoo.send_image_animation(animation).await;
 
-fn main() {
+    println!("{:?}", res.err());
+}
+
+#[tokio::main]
+async fn main() {  
+    /*
+    let num = pixoo_test_text2().await;
+    sleep(Duration::from_secs(5));
+    println!("pixoo_test_text: {:?}", num);
+    return;
+     */
 
 /*
     {
