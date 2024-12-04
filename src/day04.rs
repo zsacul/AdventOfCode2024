@@ -4,13 +4,11 @@ use std::collections::HashMap;
 
 fn count(pos:Vec2,h:&HashMap<Vec2,char>,w:String)->usize
 {
-    pos.around8().iter().filter(|dir2|
+    Vec2::dirs8().iter().filter(|dir|
         {
-            let dir = Vec2::new(dir2.x as i64-pos.x,dir2.y as i64-pos.y);
-            
             w.chars()
              .enumerate()
-             .map(|(i,c)| h.get(&(pos.add(dir.x*i as i64,dir.y*i as i64))).unwrap_or(&'.') )
+             .map(|(i,_)| h.get(&(pos.add(dir.x*i as i64,dir.y*i as i64))).unwrap_or(&'.') )
              .collect::<String>()==w
         }
     ).count()
@@ -45,8 +43,8 @@ pub fn part1(data:&[String])->usize
 {    
     let hash = clean(data,"XMAS");
    
-    hash.iter()
-        .map(|(p,_)| count(*p,&hash,"XMAS".to_string()))
+    hash.keys()
+        .map(|p| count(*p,&hash,"XMAS".to_string()))
         .sum()   
 }
 

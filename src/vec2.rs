@@ -204,5 +204,36 @@ impl Vec2 {
 		self.x*o.x + self.y*o.y
 	}
 
+    #[allow(unused)]
+    pub fn dirs4()->Vec<Vec2>
+    {
+         vec![
+            Vec2::new( 1, 0),
+            Vec2::new( 0, 1),
+            Vec2::new(-1, 0),
+            Vec2::new( 0,-1)
+         ]
+    }
+
+    #[allow(unused)]
+    pub fn dirs8()->Vec<Vec2>
+    {
+         vec![
+            Vec2::new(-1,-1), Vec2::new( 0,-1), Vec2::new(1,-1),
+            Vec2::new(-1, 0),                   Vec2::new(1, 0),
+            Vec2::new(-1, 1), Vec2::new( 0, 1), Vec2::new(1, 1),
+         ]
+    }
+
+    #[allow(unused)]
+    pub fn dirs9()->Vec<Vec2>
+    {
+         vec![
+            Vec2::new(-1,-1), Vec2::new( 0,-1), Vec2::new( 1,-1),
+            Vec2::new(-1, 0), Vec2::new( 0, 0), Vec2::new( 1, 0),
+            Vec2::new(-1, 1), Vec2::new( 0, 1), Vec2::new( 1, 1),
+         ]
+    }
+
 }
 
