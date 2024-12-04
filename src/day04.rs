@@ -2,7 +2,7 @@ use super::tools;
 use super::vec2::Vec2;
 use std::collections::HashMap;
 
-fn count(pos:Vec2,h:&mut HashMap<Vec2,char>,w:String)->usize
+fn count(pos:Vec2,h:&HashMap<Vec2,char>,w:String)->usize
 {
     pos.around8().iter().filter(|dir2|
         {
@@ -23,97 +23,57 @@ fn count(pos:Vec2,h:&mut HashMap<Vec2,char>,w:String)->usize
     ).count()
 }
 
-fn count2(x:i64,y:i64,h:&mut HashMap<Vec2,char>,w:String)->usize
-{
-    let mut cnt = 0;
+fn count2(x:i64,y:i64,h:&HashMap<Vec2,char>,w:String)->bool
+{    
     let pos = Vec2::new(x,y);
 
-    //for dir2 in pos.around8()
-    {
-        let mut t1 = Vec::new();
-        let mut t2 = Vec::new();
+    let mut t1 = Vec::new();
+    let mut t2 = Vec::new();
 
-        let dir1 = Vec2::new(1,1);
-        let dir2 = Vec2::new(1,-1);
-
-
-        
-        let mut i = 0;
-        for i in -1..=1
-        {
-            if let Some(c) = h.get(&(pos.add(dir1.x*i,dir1.y*i))) 
-            {
-                t1.push(*c);
-            }
-            if let Some(c) = h.get(&(pos.add(dir2.x*i,dir2.y*i))) 
-            {
-                t2.push(*c);
-            }
-
-        }
+    let dir1 = Vec2::new(1, 1);
+    let dir2 = Vec2::new(1,-1);
     
-        //convert t to string
-        let s1 = t1.iter().collect::<String>();
-        let s2 = t2.iter().collect::<String>();
-      //  let s2 = t.iter().rev().collect::<String>();
-
-      let rev_w = w.chars().rev().collect::<String>();
-
-       // println!("{}",s1);
-
-        if (s1==w || s1==rev_w) && (s2==w || s2==rev_w) 
-        {
-           // println!("{} {} = {} ",pos.x,pos.y,s1);
-            cnt+=1;
-        }
+    for i in -1..=1
+    {
+        if let Some(c) = h.get(&(pos.add(dir1.x*i,dir1.y*i))) { t1.push(*c); }
+        if let Some(c) = h.get(&(pos.add(dir2.x*i,dir2.y*i))) { t2.push(*c); }
     }
 
-    cnt
+    let s1 = t1.iter().collect::<String>();
+    let s2 = t2.iter().collect::<String>();
+    let rev_w = w.chars().rev().collect::<String>();
+
+    (s1==w || s1==rev_w) && (s2==w || s2==rev_w) 
+}
+
+fn clean(data:&[String],word:&str)->HashMap<Vec2,char>
+{
+    let mut h = tools::get_hash_table(data);
+    h.retain(|_,v| word.contains(*v));
+    h
 }
 
 pub fn part1(data:&[String])->usize
-{
-    let (dx,dy) = (data[0].len(),data.len());
-    let mut h = tools::get_hash_table(data);
-    h.retain(|k,v| "XMAS".contains(*v));
-    let hh = h.clone();
-
+{    
+    let hash = clean(data,"XMAS");
    
-    
-    hh.into_iter()
-    .map(|(p,_)| count(p.x as i64,p.y as i64,&mut h,"XMAS".to_string())
-    )
-    .sum()
- 
- 
-    
-    //h.filter_map(|(k,v)| if "XMAS".contains(v) { Some(k) } else { None }).count()
-
-/*
-       .values()
-       .filter(|n| ok(n,false))
-       .count()
-   data.iter()
-       .filter(|n| ok(n,false))
-       .count()
-        */
+    hash.iter()
+        .map(|(p,_)| count(*p,&hash,"XMAS".to_string()))
+        .sum()   
 }
 
 pub fn part2(data:&[String])->usize
 {
-    let (dx,dy) = (data[0].len(),data.len());
-    let mut h = tools::get_hash_table(data);
-    h.retain(|k,v| "MAS".contains(*v));
-    let hh = h.clone();
+    //let mut h = tools::get_hash_table(data);
+    //h.retain(|_,v| "MAS".contains(*v));
+    //let hh = h.clone();
+    let hash = clean(data,"MAS");
 
-   
     
-    hh.into_iter()
-    .map(|(p,_)| count2(p.x as i64,p.y as i64,&mut h,"MAS".to_string())
+    hash.iter()
+    .filter(|(p,_)| count2(p.x as i64,p.y as i64,&hash,"MAS".to_string())
     )
-    .sum()   //data.iter()
-     //  .filter(|n| ok(n,true))
-       //.count()
+    .count()
 }
 
 #[allow(unused)]
