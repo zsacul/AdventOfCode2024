@@ -3,7 +3,7 @@ use std::{thread::sleep, time::Duration};
 use timer::Timer;
 
 mod tools;
-mod pixoo;
+//mod pixoo;
 mod dijkstria;
 //use std::thread;
 //mod cycliclist;
@@ -15,7 +15,7 @@ mod vec3f;
 mod day01;
 mod day02;
 mod day03;
-//mod day04;
+mod day04;
 //mod day05;
 //mod day06;
 //mod day07;
@@ -41,10 +41,11 @@ mod day03;
 use divoom::*;
 use tokio; // Add this if not already in your dependencies
 
-
-async fn pixoo_test_text2()
+/*
+async fn pixoo_test_text2(ip:&str)
 {
-    let pixoo = PixooClient::new("192.168.8.113").unwrap();
+    
+    let pixoo = PixooClient::new(&ip[..]).unwrap();
         
     // Load the resource.
     //let frames = DivoomAnimationResourceLoader::from_gif_file("c:/rust/AdventOfCode/AdventOfCode2024/target/aoc_output.gif").unwrap();
@@ -56,18 +57,22 @@ async fn pixoo_test_text2()
 
     // Send to device here.
     let res = pixoo.send_image_animation(animation).await;
-
+    
     println!("{:?}", res.err());
 }
+     */
 
 #[tokio::main]
 async fn main() {  
-    /*
-    let num = pixoo_test_text2().await;
-    sleep(Duration::from_secs(5));
+    
+/*
+    let num = pixoo::pixoo_test_text().await; 
     println!("pixoo_test_text: {:?}", num);
-    return;
-     */
+    return
+ */    
+
+
+    
 
 /*
     {
@@ -77,25 +82,25 @@ async fn main() {
     }
 
     {
-    let _timer = Timer::new();
-    let day2_data  = tools::read_1d_string("data/day02.txt");
-    day02::solve(&day2_data);
-}
-*/    
+        let _timer = Timer::new();
+        let day2_data  = tools::read_1d_string("data/day02.txt");
+        day02::solve(&day2_data);
+    }
 
     {
         let _timer = Timer::new();
         let day3_data  = tools::read_1d_string("data/day03.txt");
         day03::solve(&day3_data);
     }
+*/    
         
-/*
     {
         let _timer = Timer::new();
         let day4_data  = tools::read_1d_string("data/day04.txt");
         day04::solve(&day4_data);
     }
     
+    /*
     {
         let _timer = Timer::new();
         let day5_data  = tools::read_1d_string("data/day05.txt");
