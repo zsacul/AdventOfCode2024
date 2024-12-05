@@ -3,7 +3,7 @@ use super::tools;
 
 #[derive(Debug)]
 struct Data {
-    pairs: Vec<(usize,usize)>,
+      pairs: Vec<(usize,usize)>,
     numbers: Vec<Vec<usize>>
 }
 
@@ -13,18 +13,13 @@ impl Data {
         
         let pairs = sections[0].iter()
             .map(|line| {
-                let nums = tools::split_to_usize(line, "|");               
+                let nums = tools::split_to_usize(line, "|");
                 (nums[0], nums[1])
-                
             })
             .collect();
         
         let numbers: Vec<Vec<usize>> = sections[1].iter()
-            .map(|line| {
-                line.split(',')
-                    .flat_map(|num| num.trim().parse::<usize>())
-                    .collect()
-            })
+            .map(|line| tools::split_to_usize(line, ",") )
             .collect();
 
         Data {
@@ -33,142 +28,72 @@ impl Data {
         }
     }
 
-    fn print(&self)
+    fn get_pos(line:&[usize])->HashMap<usize,usize>
     {
-        println!("{:?}",self.pairs);
-        println!("{:?}",self.numbers);
+        line.iter()
+            .enumerate()
+            .map(|(id,v)| (*v,id))
+            .collect()
     }
 
-    fn ok(&self,line:&Vec<usize>) -> bool
+    fn ok1(&self,line:&[usize]) -> usize
     {
-        let mut pos = HashMap::new();
-
-        let mut id=0;
-        for n in line
-        {
-            pos.insert(n,id);
-            id+=1;
-        }
+        let pos = Data::get_pos(line);
 
         for (a,b) in &self.pairs
         {            
-            if pos.contains_key(a) && pos.contains_key(b)
+            if pos.contains_key(a) && pos.contains_key(b) && pos[a] > pos[b]
             {
-                if pos[a] > pos[b] { return false; }
+                return 0;
             }
         }
-        true
+        line[line.len()/2]
     }
 
     fn compare(&self,a:usize,b:usize)->std::cmp::Ordering
     {
-        let mut res = std::cmp::Ordering::Equal;
         for (a1,b1) in &self.pairs
         {
-            if a == *a1 as usize && b == *b1 as usize
-            {
-                res = std::cmp::Ordering::Less;
-                break;
-            }
-            if a == *b1 as usize && b == *a1 as usize
-            {
-                res = std::cmp::Ordering::Greater;
-                break;
-            }
+            if a==*a1 && b==*b1 { return std::cmp::Ordering::Less;    }
+            if a==*b1 && b==*a1 { return std::cmp::Ordering::Greater; }
         }
-        res
+        std::cmp::Ordering::Equal
     }
 
-    fn ok2(&self,line:&Vec<usize>) -> usize
+    fn ok2(&self,line:&[usize]) -> usize
     {
-        let mut pos = HashMap::new();
+        if self.ok1(line)!=0 { return 0; }
 
-        let mut id=0usize;
-        for n in line
-        {
-            pos.insert(*n as usize,id);
-            id+=1;
-        }
-        let mut res = false;
-
-        for (a,b) in &self.pairs
-        {            
-            if pos.contains_key(a) && pos.contains_key(b)
-            {
-                if pos[a] > pos[b]
-                {
-                    res = true;
-                    break;
-                }                
-            }
-        }
-
-        if res
-        {
-            let mut posok = line.clone();
-            posok.sort_by(|a,b| self.compare(*a as usize,*b as usize));          
-            posok[posok.len()/2] as usize
-        }
-        else
-        {
-            0
-        }
-
+        let mut posok = line.to_owned();
+        posok.sort_by(|a,b| self.compare(*a,*b));
+        posok[posok.len()/2]
     }
 
-
-    fn count1(&self,second:bool)->usize
+    fn count1(&self)->usize
     {
         self.numbers.iter()
-            .map(|n| if self.ok(n) {n[n.len()/2] as usize} else {0})
+            .map(|n| self.ok1(n) )
             .sum()
     
     }
 
-    fn count2(&self,second:bool)->usize
+    fn count2(&self)->usize
     {
         self.numbers.iter()
             .map(|n| self.ok2(n))
-            .sum()
-    
+            .sum()    
     }
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn part1(data:&[String])->usize
 {
-    let d = Data::new(data);
-    //d.print();
-    d.count1(false)
-
+    Data::new(data).count1()
 }
 
 pub fn part2(data:&[String])->usize
 {
-    let d = Data::new(data);
-    //d.print();
-    d.count2(true)
+    Data::new(data).count2()
 }
 
 #[allow(unused)]
