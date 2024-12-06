@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use super::tools;
@@ -6,11 +5,11 @@ use super::vec2::Vec2;
 
 #[derive(Debug)]
 struct Data {
-       hash: HashMap<Vec2,char>,
-        pos: Vec2,
-        dir: usize,
-        dx:usize,
-        dy:usize
+       hash : HashMap<Vec2,char>,
+        pos : Vec2,
+        dir : usize,
+         dx : usize,
+         dy : usize
 }
 
 impl Data {
@@ -22,11 +21,11 @@ impl Data {
         let d = *hash.clone().get(&pos).unwrap();
             
         Data {
-            hash:hash ,
-            pos:pos,
-            dir:Data::get_dir(d),
-            dx:input[0].len(),
-            dy:input.len()
+            hash,
+            pos,
+            dir : Data::get_dir(d),
+            dx  : input[0].len(),
+            dy  : input.len()
         }
     }
 
@@ -60,137 +59,27 @@ impl Data {
         self.dir = (self.dir+1)%4;        
     }
 
-    fn get_pos(line:&[usize])->HashMap<usize,usize>
+
+    fn patrol(&mut self)->(usize,usize)
     {
-        line.iter()
-            .enumerate()
-            .map(|(id,v)| (*v,id))
-            .collect()
-    }
-
-    fn print_hash(&self,hash:&HashMap<Vec2,char>)
-    {
-        println!();
-        //println!("dx = {}, dy = {}",self.dx,self.dy);
-        let s = 32;
-
-        for yy in 0..10
-        {
-            for xx in 0..10
-            {
-                let x = xx; //s + xx-yy;
-                let y = yy; //xx + yy;
-                let p = Vec2::new(x as i64,y as i64);
-                let c = hash.get(&p).unwrap_or(&' ');
-                print!("{c}");               
-            }
-            println!();
-        }
-    }
-
-    fn print_hash2(&self,hash:&HashSet<Vec2>)
-    {
-        println!();
-        //println!("dx = {}, dy = {}",self.dx,self.dy);
-        let s = 32;
-
-        for yy in 0..10
-        {
-            for xx in 0..10
-            {
-                let x = xx; //s + xx-yy;
-                let y = yy; //xx + yy;
-                let p = Vec2::new(x as i64,y as i64);
-                let c = if hash.contains(&p) {'X'} else {' '};
-                print!("{c}");               
-            }
-            println!();
-        }
-    }
-
-
-    fn patrol(&mut self)->usize
-    {
+        let mut visited = HashSet::new();
+        self.hash.insert(self.pos,'.');
         let mut len = 0;
 
-        self.hash.insert(self.pos,'.');
-
-        let mut visited = HashSet::new();
-
-        while self.hash.get(&self.pos).is_some() && self.hash.get(&self.pos).unwrap_or(&'+')!=&'+'
+        while len<self.dx*self.dy && 
+              self.hash.get(&self.pos).is_some()              
         {
-            //self.hash.insert(self.pos,'X');
             visited.insert(self.pos);
             
-            let nm = self.pos.addv(Data::get_off(self.dir));           
-            let n= *self.hash.get(&nm).unwrap_or(&'+');
-            
-            //println!("{:?}->{:?} = {} {}",self.pos,nm,n,self.dir);
+            let new_pos = self.pos.addv(Data::get_off(self.dir));           
+            let n= *self.hash.get(&new_pos).unwrap_or(&'+');
 
-
-            if n=='+'
-            {
-                return visited.len();
+            match n  {
+                '+' => return (visited.len(),len),
+                '.' => self.pos = new_pos,
+                '#' => self.right(),
+                 _  => panic!("unknown char")
             }
-            if n=='.'
-            {
-                self.pos = nm;
-            }
-            if n=='#'
-            {
-                self.right();
-            }
-            if n=='.'
-            {
-                self.pos = nm;
-            }
-            //println!("{:?}",self.pos);
-            //self.print_hash2(&visited);
-            
-            len+=1;
-        }
-
-        visited.len()
-    }
-
-
-    fn patrol2(&mut self)->(usize,usize)
-    {
-        let mut len = 0;
-
-        self.hash.insert(self.pos,'.');
-
-        let mut visited = HashSet::new();
-
-        while len<132*132 && self.hash.get(&self.pos).is_some() && self.hash.get(&self.pos).unwrap_or(&'+')!=&'+'
-        {
-            //self.hash.insert(self.pos,'X');
-            visited.insert(self.pos);
-            
-            let nm = self.pos.addv(Data::get_off(self.dir));           
-            let n= *self.hash.get(&nm).unwrap_or(&'+');
-            
-            //println!("{:?}->{:?} = {} {}",self.pos,nm,n,self.dir);
-
-
-            if n=='+'
-            {
-                return (visited.len(),len);
-            }
-            if n=='.'
-            {
-                self.pos = nm;
-            }
-            if n=='#'
-            {
-                self.right();
-            }
-            if n=='.'
-            {
-                self.pos = nm;
-            }
-            //println!("{:?}",self.pos);
-            //self.print_hash2(&visited);
             
             len+=1;
         }
@@ -198,20 +87,17 @@ impl Data {
         (visited.len(),len)
     }
 
-
-
     fn count1(&mut self) -> usize
     {
-        self.patrol()
-        //self.hash.values().filter(|&v| *v=='X').count()
+        self.patrol().0
     }
-
 
     fn count2(&mut self) -> usize
     {
         let org_pos = self.pos;
         let org_dir = self.dir;
         let mut count = 0;
+
         for y in 0..self.dy
         {
             for x in 0..self.dx
@@ -219,16 +105,10 @@ impl Data {
                 let p = Vec2::new(x as i64,y as i64);
                 let c = *self.hash.get(&p).unwrap_or(&' ');
                 
-                if c=='#'
-                {
-                    continue;
-                }
+                if c=='#' { continue; }
                 self.hash.insert(p,'#');
-                let p2 = self.patrol2();
 
-                println!("{:?} ",p2);
-
-                if p2.1>130*130
+                if self.patrol().1>=self.dx*self.dy
                 {
                     count+=1;
                 }
@@ -237,12 +117,9 @@ impl Data {
                 self.dir = org_dir;
             }
         }
-        
+       
         count
-        
     }
-
-
 
 }
 
