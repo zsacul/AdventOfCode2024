@@ -4,22 +4,24 @@ use super::tools;
 use super::vec2::Vec2;
 
 #[derive(Debug)]
-struct Data {
-       hash : HashMap<Vec2,char>,
-        pos : Vec2,
-        dir : usize,
-         dx : usize,
-         dy : usize
+struct Data 
+{
+    hash : HashMap<Vec2,char>,
+     pos : Vec2,
+     dir : usize,
+      dx : usize,
+      dy : usize
 }
 
 impl Data {
     fn new(input: &[String]) -> Self 
     {
         let hash = tools::get_hash_table(input);
-        let pos = *hash.iter().find(|&(k,v)| *v!='.' && *v!='#').unwrap().0;
+        let pos = *hash.iter().find(|&(_,v)| *v!='.' && *v!='#').unwrap().0;
         let d = *hash.get(&pos).unwrap();
             
-        Data {
+        Data 
+        {
             hash,
             pos,
             dir : Data::get_dir(d),
@@ -27,7 +29,6 @@ impl Data {
             dy  : input.len()
         }
     }
-
 
     fn get_dir(c:char)->usize
     {
@@ -62,27 +63,28 @@ impl Data {
     {
         let mut visited = HashSet::new();
         self.hash.insert(self.pos,'.');
-        let mut len = 0;
+        let mut steps = 0;
 
-        while len<self.dx*self.dy && 
-              self.hash.get(&self.pos).is_some()              
+        while steps<self.dx*self.dy && 
+              self.hash.contains_key(&self.pos)
         {
             visited.insert(self.pos);
             
             let new_pos = self.pos.addv(Data::get_off(self.dir));           
-            let n= *self.hash.get(&new_pos).unwrap_or(&'+');
+            let n: char= *self.hash.get(&new_pos).unwrap_or(&'+');
 
-            match n  {
-                '+' => return (visited.len(),len),
+            match n  
+            {
+                '+' => return (visited.len(),steps),
                 '.' => self.pos = new_pos,
                 '#' => self.rotate_right(),
                  _  => panic!("unknown char")
             }
             
-            len+=1;
+            steps+=1;
         }
 
-        (visited.len(),len)
+        (visited.len(),steps)
     }
 
     fn count1(&mut self) -> usize
@@ -95,7 +97,6 @@ impl Data {
         let org_pos = self.pos;
         let org_dir = self.dir;
         
-
         tools::get_2d_iter(0,self.dx,0,self.dy)
         .into_iter()
         .filter(|&(x,y)| 
