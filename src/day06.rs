@@ -13,12 +13,11 @@ struct Data {
 }
 
 impl Data {
-    fn new(input: &[String]) -> Self {
-        let  hash = tools::get_hash_table(input);
-        
-
+    fn new(input: &[String]) -> Self 
+    {
+        let hash = tools::get_hash_table(input);
         let pos = *hash.iter().find(|&(k,v)| *v!='.' && *v!='#').unwrap().0;
-        let d = *hash.clone().get(&pos).unwrap();
+        let d = *hash.get(&pos).unwrap();
             
         Data {
             hash,
@@ -46,19 +45,18 @@ impl Data {
     {
         match dir
         {
-            0 => Vec2::new( 0,-1 ),
+            0 => Vec2::new( 0,-1),
             1 => Vec2::new( 1, 0),
             2 => Vec2::new( 0, 1),
             3 => Vec2::new(-1, 0),
-            _ => Vec2::new( 0, 0)
+            _ => panic!("unknown dir")
         }
     }
 
-    fn right(&mut self)
+    fn rotate_right(&mut self)
     {
         self.dir = (self.dir+1)%4;        
     }
-
 
     fn patrol(&mut self)->(usize,usize)
     {
@@ -77,7 +75,7 @@ impl Data {
             match n  {
                 '+' => return (visited.len(),len),
                 '.' => self.pos = new_pos,
-                '#' => self.right(),
+                '#' => self.rotate_right(),
                  _  => panic!("unknown char")
             }
             
@@ -96,29 +94,25 @@ impl Data {
     {
         let org_pos = self.pos;
         let org_dir = self.dir;
-        let mut count = 0;
+        
 
-        for y in 0..self.dy
+        tools::get_2d_iter(0,self.dx,0,self.dy)
+        .into_iter()
+        .filter(|&(x,y)| 
         {
-            for x in 0..self.dx
-            {
-                let p = Vec2::new(x as i64,y as i64);
-                let c = *self.hash.get(&p).unwrap_or(&' ');
-                
-                if c=='#' { continue; }
-                self.hash.insert(p,'#');
+            let p = Vec2::new(x as i64,y as i64);
+            let c = *self.hash.get(&p).unwrap_or(&' ');         
+            self.hash.insert(p,'#');
 
-                if self.patrol().1>=self.dx*self.dy
-                {
-                    count+=1;
-                }
-                self.hash.insert(p,c);
-                self.pos = org_pos;
-                self.dir = org_dir;
-            }
-        }
-       
-        count
+            let steps = self.patrol().1;
+
+            self.hash.insert(p,c);
+            self.pos = org_pos;
+            self.dir = org_dir;
+
+            c!='#' && steps>=self.dx*self.dy
+        }        
+        ).count()
     }
 
 }
