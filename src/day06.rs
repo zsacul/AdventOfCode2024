@@ -62,20 +62,22 @@ impl Data {
     fn patrol(&mut self)->(usize,usize)
     {
         let mut visited = HashSet::new();
+        let mut count = HashSet::new();
         self.hash.insert(self.pos,'.');
         let mut steps = 0;
 
-        while steps<self.dx*self.dy && 
+        while !visited.contains(&(self.pos,self.dir)) &&
               self.hash.contains_key(&self.pos)
         {
-            visited.insert(self.pos);
+            visited.insert((self.pos,self.dir));
+            count.insert(self.pos);
             
             let new_pos = self.pos.addv(Data::get_off(self.dir));           
             let n: char= *self.hash.get(&new_pos).unwrap_or(&'+');
 
             match n  
             {
-                '+' => return (visited.len(),steps),
+                '+' => return (count.len(),steps),
                 '.' => self.pos = new_pos,
                 '#' => self.rotate_right(),
                  _  => panic!("unknown char")
@@ -84,7 +86,7 @@ impl Data {
             steps+=1;
         }
 
-        (visited.len(),steps)
+        (count.len(),steps)
     }
 
     fn count1(&mut self) -> usize
