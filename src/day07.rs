@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use super::tools;
 
 fn concatenate(a:usize,b:usize)->usize
@@ -10,6 +11,30 @@ fn concatenate(a:usize,b:usize)->usize
         a *= 10;
     }
     a+b
+}
+
+fn possible(n:&Vec<usize>,m:usize,sum:usize)->HashSet<usize>
+{    
+    let mut hash = HashSet::new();
+    let mut hash_new = HashSet::new();
+
+    hash.insert(n[0]);
+
+    for i in 1..m
+    {
+        for &v in hash.iter()
+        {
+            hash_new.insert(v+n[i]);
+            hash_new.insert(v*n[i]);
+            hash_new.insert(concatenate(v,n[i]));
+        }
+        hash_new.retain(|&v| v<=sum);
+
+        hash = hash_new.clone();
+        hash_new.clear();
+    }
+
+    hash
 }
 
 fn calc1(n:&Vec<usize>,m:usize)->usize
@@ -25,58 +50,51 @@ fn calc1(n:&Vec<usize>,m:usize)->usize
     acc
 }
 
-fn calc2(n:&Vec<usize>,m:usize,sum:usize)->usize
+fn get_data(s:&str)->(usize,Vec<usize>)
 {
-    let mut acc = n[0];
-
-    for i in 1..n.len()
-    {
-        let b0 = (m & (1<<((2*i)  )))!=0;
-        let b1 = (m & (1<<((2*i)+1)))!=0;
-
-        match (b0,b1)
-        {
-            (false,false) => acc  = concatenate(acc,n[i]),
-            (false, true) => acc += n[i],
-            ( true,false) => acc *= n[i],
-            _             => acc += n[i],
-        }
-        if acc>sum { return 0; }
-    }
-
-    acc
+    let tab : Vec<&str>= s.split(": ").collect();
+    ( 
+      tab[0].parse::<usize>().unwrap(),
+      tools::split_to_usize(tab[1], " ") 
+    )
 }
 
-
-fn ok(s:&str,second:bool)->usize
+fn ok1(s:&str,second:bool)->usize
 {
-    let t : Vec<&str>= s.split(": ").collect();
-    let sum = t[0].parse::<usize>().unwrap();
-    let n = tools::split_to_usize(t[1], " ");
-
-    let m = if second {1<<(2*n.len())} else { 1<<n.len()};
-   
-    for i in 0..=m
+    let (sum,n) = get_data(s);
+       
+    if (0..=1<<n.len()).any(|i| sum==calc1(&n,i))
     {
-        let s = if second { calc2(&n,i,sum) }
-                            else { calc1(&n,i    ) };
-        
-        if sum==s { return sum; }
+       sum
     }
-    return 0;
+      else 
+    {
+        0
+    }
 }
+
+fn ok2(s:&str,second:bool)->usize
+{
+    let (sum,n) = get_data(s);
+  
+    *possible(&n,n.len(),sum)
+     .iter()
+     .find(|&&v| v==sum)
+     .unwrap_or(&0)
+}
+
 
 pub fn part1(data:&[String])->usize
 {
    data.iter()
-       .map(|n| ok(n,false))
+       .map(|n| ok1(n,false))
        .sum()
 }
 
 pub fn part2(data:&[String])->usize
 {
     data.iter()
-        .map(|n| ok(n,true))
+        .map(|n| ok2(n,true))
         .sum()
 }
 
