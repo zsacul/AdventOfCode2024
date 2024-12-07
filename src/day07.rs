@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
 use super::tools;
-use super::vec2::Vec2;
 
-fn concatenate(a:u128,b:u128)->u128
+fn concatenate(a:usize,b:usize)->usize
 {
     let mut a = a;
     let mut c = b;
@@ -15,44 +12,34 @@ fn concatenate(a:u128,b:u128)->u128
     a+b
 }
 
-fn calc1(n:&Vec<usize>,m:usize)->u128
+fn calc1(n:&Vec<usize>,m:usize)->usize
 {
-    let mut acc = n[0] as u128;
+    let mut acc = n[0];
 
     for i in 1..n.len()
     {
-        let n = n[i] as u128;
-        if m & (1<<i) != 0
-        {
-            acc += n;
-        }
-        else
-        {
-            acc *= n;
-        }
+        if m & (1<<i) != 0 { acc += n[i]; }
+                      else { acc *= n[i]; }
     }
 
     acc
-
 }
 
-fn calc2(n:&Vec<usize>,m:usize,sum:u128)->u128
+fn calc2(n:&Vec<usize>,m:usize,sum:usize)->usize
 {
-    let mut acc:u128 = n[0] as u128;
+    let mut acc = n[0];
 
     for i in 1..n.len()
     {
         let b0 = (m & (1<<((2*i)  )))!=0;
         let b1 = (m & (1<<((2*i)+1)))!=0;
 
-        let n  = n[i] as u128;
-
         match (b0,b1)
         {
-            (false,false) => acc  = concatenate(acc,n),
-            (false, true) => acc += n,
-            ( true,false) => acc *= n,
-            _             => acc += n,
+            (false,false) => acc  = concatenate(acc,n[i]),
+            (false, true) => acc += n[i],
+            ( true,false) => acc *= n[i],
+            _             => acc += n[i],
         }
         if acc>sum { return 0; }
     }
@@ -60,49 +47,33 @@ fn calc2(n:&Vec<usize>,m:usize,sum:u128)->u128
     acc
 }
 
-fn ok(s:&str,second:bool)->u128
+
+fn ok(s:&str,second:bool)->usize
 {
-    let t :Vec<&str>= s.split(": ").collect();
-    let sum = t[0].parse::<u128>().unwrap();
+    let t : Vec<&str>= s.split(": ").collect();
+    let sum = t[0].parse::<usize>().unwrap();
     let n = tools::split_to_usize(t[1], " ");
 
     let m = if second {1<<(2*n.len())} else { 1<<n.len()};
    
     for i in 0..=m
     {
-        if !second
-        {
-            if sum==calc1(&n,i)
-            {
-                return sum;
-            }
-        }
-          else 
-        {
-            if sum as u128==calc2(&n,i,sum as u128)
-            {
-                println!("{:?}",sum);
-                return sum;
-            }
-        }
-
+        let s = if second { calc2(&n,i,sum) }
+                            else { calc1(&n,i    ) };
+        
+        if sum==s { return sum; }
     }
     return 0;
-
-
 }
 
-//271692122210925 wrong
-
-
-pub fn part1(data:&[String])->u128
+pub fn part1(data:&[String])->usize
 {
    data.iter()
        .map(|n| ok(n,false))
        .sum()
 }
 
-pub fn part2(data:&[String])->u128
+pub fn part2(data:&[String])->usize
 {
     data.iter()
         .map(|n| ok(n,true))
