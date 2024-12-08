@@ -18,7 +18,7 @@ mod day04;
 mod day05;
 mod day06;
 mod day07;
-//mod day08;
+mod day08;
 //mod day09;
 //mod day10;
 //mod day11;
@@ -38,7 +38,7 @@ mod day07;
 //mod day25;
 
 //use divoom::*;
-use tokio; // Add this if not already in your dependencies
+//use tokio; // Add this if not already in your dependencies
 
 /*
 async fn pixoo_test_text2(ip:&str)
@@ -61,8 +61,9 @@ async fn pixoo_test_text2(ip:&str)
 }
      */
 
-#[tokio::main]
-async fn main() {  
+//#[tokio::main]
+//async 
+fn main() {  
     
 /*
     let num = pixoo::pixoo_test_text().await; 
@@ -106,20 +107,20 @@ async fn main() {
         let day6_data  = tools::read_1d_string("data/day06.txt");
         day06::solve(&day6_data);
     }
-    */    
-        
-    {
-        let _timer = Timer::new();
-        let day7_data  = tools::read_1d_string("data/day07.txt");
-        day07::solve(&day7_data);
-    }
     
-    /*    
+    {
+    let _timer = Timer::new();
+    let day7_data  = tools::read_1d_string("data/day07.txt");
+    day07::solve(&day7_data);
+    }
+    */    
+    
     {
         let _timer = Timer::new();
         let day8_data  = tools::read_1d_string("data/day08.txt");
         day08::solve(&day8_data);
     }
+    /*    
     
     {
         let _timer = Timer::new();

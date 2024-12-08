@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use super::vec2::Vec2;
 
 #[allow(unused)]
@@ -140,4 +140,28 @@ pub fn get_hash_table(data:&[String])->HashMap<Vec2,char>
     }
 
     hash
+}
+
+#[allow(unused)]
+pub fn print_hash_set(data:&HashSet<Vec2>,dx:usize,dy:usize)
+{
+    //let mut hash = HashMap::new();
+
+    for y in 0..dy
+    {
+        for x in 0..dx
+        {
+            if data.contains(&Vec2::new(x as i64,y as i64))
+            {
+                print!("#");
+            }
+            else
+            {
+                print!(".");
+            }
+        }
+        println!();
+    }
+
+    //hash
 }

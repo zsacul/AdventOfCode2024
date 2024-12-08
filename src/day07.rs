@@ -13,20 +13,20 @@ fn concatenate(a:usize,b:usize)->usize
     a+b
 }
 
-fn possible(n:&Vec<usize>,m:usize,sum:usize)->HashSet<usize>
+fn possible(n:&[usize],m:usize,sum:usize)->HashSet<usize>
 {    
     let mut hash = HashSet::new();
     let mut hash_new = HashSet::new();
 
     hash.insert(n[0]);
-
-    for i in 1..m
+    
+    for &it in n.iter().take(m).skip(1)
     {
         for &v in hash.iter()
         {
-            hash_new.insert(v+n[i]);
-            hash_new.insert(v*n[i]);
-            hash_new.insert(concatenate(v,n[i]));
+            hash_new.insert(v+it);
+            hash_new.insert(v*it);
+            hash_new.insert(concatenate(v,it));
         }
         hash_new.retain(|&v| v<=sum);
 
@@ -37,18 +37,20 @@ fn possible(n:&Vec<usize>,m:usize,sum:usize)->HashSet<usize>
     hash
 }
 
-fn calc1(n:&Vec<usize>,m:usize)->usize
+fn calc1(n:&[usize],m:usize)->usize
 {
     let mut acc = n[0];
 
-    for i in 1..n.len()
+    for (i, ni) in n.iter().enumerate().skip(1)
     {
-        if m & (1<<i) != 0 { acc += n[i]; }
-                      else { acc *= n[i]; }
+        if m & (1<<i) != 0 { acc += ni; }
+                      else { acc *= ni; }
     }
 
     acc
 }
+
+
 
 fn get_data(s:&str)->(usize,Vec<usize>)
 {
@@ -59,7 +61,7 @@ fn get_data(s:&str)->(usize,Vec<usize>)
     )
 }
 
-fn ok1(s:&str,second:bool)->usize
+fn ok1(s:&str)->usize
 {
     let (sum,n) = get_data(s);
        
@@ -73,7 +75,7 @@ fn ok1(s:&str,second:bool)->usize
     }
 }
 
-fn ok2(s:&str,second:bool)->usize
+fn ok2(s:&str)->usize
 {
     let (sum,n) = get_data(s);
   
@@ -87,14 +89,14 @@ fn ok2(s:&str,second:bool)->usize
 pub fn part1(data:&[String])->usize
 {
    data.iter()
-       .map(|n| ok1(n,false))
+       .map(|n| ok1(n))
        .sum()
 }
 
 pub fn part2(data:&[String])->usize
 {
     data.iter()
-        .map(|n| ok2(n,true))
+        .map(|n| ok2(n))
         .sum()
 }
 
