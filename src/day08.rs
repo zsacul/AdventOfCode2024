@@ -33,26 +33,15 @@ impl Data {
     fn count1(&mut self)->usize
     {
         let mut anti : HashSet<Vec2> = hash_set::HashSet::new();
-        let mut freq : HashSet<char> = HashSet::new();
-        
-        tools::get_2d_iter(0,self.dx,0,self.dy)
-        .into_iter()
-        .for_each(|(x,y)|         
-            {
-                let p = Vec2::new(x as i64,y as i64);
-                let c = *self.hash.get(&p).unwrap_or(&' ');         
-
-                if c!='.'
-                {
-                    freq.insert(c);
-                }
-            }
-        );
+        let  freq : HashSet<char> = self.hash.values()
+                                             .cloned()
+                                             .filter(|&c|c!='.')     
+                                             .collect();       
 
         for &f in freq.iter()
         {
             let freqs : HashSet<Vec2> = self.hash.iter()
-            .filter(|&(v,c)| *c==f )
+            .filter(|&(_,c)| *c==f )
             .map(|(v,_)| *v)
             .collect();
 
@@ -100,7 +89,7 @@ impl Data {
         for &f in freq.iter()
         {
             let freqs : HashSet<Vec2> = self.hash.iter()
-                                                 .filter(|&(v,c)| *c==f )
+                                                 .filter(|&(_,c)| *c==f )
                                                  .map(|(v,_)| *v)
                                                  .collect();            
 
