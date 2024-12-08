@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use tokio::time::error::Elapsed;
 
 use super::tools;
 use super::vec2::Vec2;
@@ -61,7 +60,7 @@ impl Data {
         self.dir = (self.dir+1)%4;        
     }
 
-    fn patrol(&mut self)->(usize,usize)
+    fn patrol(&mut self)->(HashSet<Vec2>,usize)
     {
         let mut visited = HashSet::new();
         let mut count = HashSet::new();
@@ -79,7 +78,7 @@ impl Data {
 
             match n  
             {
-                '+' => return (count.len(),steps),
+                '+' => return (count,steps),
                 '.' => self.pos = new_pos,
                 '#' => self.rotate_right(),
                  _  => panic!("unknown char")
@@ -90,29 +89,30 @@ impl Data {
 
         if visited.contains(&(self.pos,self.dir))
         {
-            (count.len(),self.dx*self.dy)
+            (count,self.dx*self.dy)
         }
           else
         {
-            (count.len(),steps)
+            (count,steps)
         }
     }
 
     fn count1(&mut self) -> usize
     {
-        self.patrol().0
+        self.patrol().0.len()
     }
 
     fn count2(&mut self) -> usize
     {
-        let org_pos = self.pos;
+        let org_pos  = self.pos;
         let org_dir = self.dir;
-        
-        tools::get_2d_iter(0,self.dx,0,self.dy)
+
+        let  pat = self.patrol().0;    
+
+        pat
         .into_iter()
-        .filter(|&(x,y)| 
+        .filter(|&p| 
         {
-            let p = Vec2::new(x as i64,y as i64);
             let c = *self.hash.get(&p).unwrap_or(&' ');         
             self.hash.insert(p,'#');
 
@@ -122,7 +122,7 @@ impl Data {
             self.pos = org_pos;
             self.dir = org_dir;
 
-            c!='#' && steps>=self.dx*self.dy
+            steps>=self.dx*self.dy
         }        
         ).count()
     }
