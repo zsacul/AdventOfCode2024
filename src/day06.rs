@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use tokio::time::error::Elapsed;
+
 use super::tools;
 use super::vec2::Vec2;
 
@@ -86,7 +88,14 @@ impl Data {
             steps+=1;
         }
 
-        (count.len(),steps)
+        if visited.contains(&(self.pos,self.dir))
+        {
+            (count.len(),self.dx*self.dy)
+        }
+          else
+        {
+            (count.len(),steps)
+        }
     }
 
     fn count1(&mut self) -> usize
