@@ -1,109 +1,183 @@
-use std::collections::HashSet;
-use super::tools;
-
-fn concatenate(a:usize,b:usize)->usize
+fn check_sum(t:&Vec<(u32)>)->u128
 {
-    let mut a = a;
-    let mut c = b;
-    while c > 0
-    {
-        c /= 10;
-        a *= 10;
-    }
-    a+b
-}
+    let dot = 9999999u32;    
 
-fn possible(n:&[usize],m:usize,sum:usize)->HashSet<usize>
-{    
-    let mut hash = HashSet::new();
-    let mut hash_new = HashSet::new();
-
-    hash.insert(n[0]);
-    
-    for &it in n.iter().take(m).skip(1)
-    {
-        for &v in hash.iter()
+    t.iter().enumerate().map(|(ii,&n)|       
+        if n==dot
         {
-            hash_new.insert(v+it);
-            hash_new.insert(v*it);
-            hash_new.insert(concatenate(v,it));
+            0
         }
-        hash_new.retain(|&v| v<=sum);
-
-        hash = hash_new.clone();
-        hash_new.clear();
-    }
-
-    hash
+        else
+        {
+            (ii as u128)*(n as u128)
+        }
+    ).sum()
 }
 
-fn calc1(n:&[usize],m:usize)->usize
+fn ok(s:&str)->u128
 {
-    let mut acc = n[0];
+    let mut blocks = vec![];
 
-    for (i, ni) in n.iter().enumerate().skip(1)
+    let mut id=0u32;
+
+    let mut t : Vec<u32> = vec![];
+
+
+    let dot = 9999999u32;
+    let mut down = true;
+
+    for c in s.chars()
     {
-        if m & (1<<i) != 0 { acc += ni; }
-                      else { acc *= ni; }
+        let n = c.to_digit(10).unwrap();
+
+        for _ in 0..n
+        {
+            if down
+            {
+                blocks.push(id/2);
+            }
+                else
+            {
+                blocks.push(dot);
+            }                
+        }
+        
+        down = !down;
+        id+=1;    
     }
 
-    acc
-}
+    t = blocks.clone();
 
+    //blocks.push((n,prev,id));
+    //println!("{:?}",blocks);
+    
 
+    let mut l = 0;
+    let mut r = t.len()-1;
 
-fn get_data(s:&str)->(usize,Vec<usize>)
-{
-    let tab : Vec<&str>= s.split(": ").collect();
-    ( 
-      tab[0].parse::<usize>().unwrap(),
-      tools::split_to_usize(tab[1], " ") 
-    )
-}
-
-fn ok1(s:&str)->usize
-{
-    let (sum,n) = get_data(s);
-       
-    if (0..=1<<n.len()).any(|i| sum==calc1(&n,i))
+    while l<r
     {
-       sum
+        while t[l]!=dot {l+=1;}
+        while t[r]==dot {r-=1;}
+
+        if l>=r {break;}
+
+        if t[l]==dot && t[r]!=dot
+        {
+            let tmp = t[l];
+            t[l] = t[r];
+            t[r] = tmp;
+
+            l+=1;
+            r-=1;
+        }
     }
-      else 
-    {
-        0
-    }
+
+    check_sum(&t) as u128    
 }
 
-fn ok2(s:&str)->usize
+fn count(t:&Vec<u32>,n:usize)->usize
 {
-    let (sum,n) = get_data(s);
-  
-    *possible(&n,n.len(),sum)
-     .iter()
-     .find(|&&v| v==sum)
-     .unwrap_or(&0)
+    let mut i = n;
+    let v = t[i];
+
+    while i < t.len() && t[i]==v
+    {
+        i+=1;
+    }
+
+    i-n    
+}
+
+fn ok2(s:&str)->u128
+{
+    let mut blocks = vec![];
+    let mut id=0u32;
+    let mut t : Vec<u32> = vec![];
+
+    let dot = 9999999u32;
+    let mut down = true;
+
+
+    for c in s.chars()
+    {
+        let n = c.to_digit(10).unwrap();
+
+        for x in 0..n
+        {
+            if down
+            {
+                blocks.push(id/2);
+            }
+                else
+            {
+                blocks.push(dot);
+            }                
+        }
+        
+        down = !down;
+        id+=1;    
+    }
+
+    t = blocks.clone();
+
+    for io in (0..=s.len()/2).rev()
+    {        
+        let f = t.iter().enumerate().find(|&(_,e)|*e==io as u32);
+        
+        if f.is_some()
+        {
+            let inx = f.unwrap().0 as usize;
+            let cnt = count(&t,inx);
+
+            for x in 0..t.len()
+            {
+                if t[x]==dot && x<inx
+                {
+                    let dots = count(&t, x);
+                    //println!("DOTS={}x{}",x,dots);
+                    
+                    if dots>=cnt
+                    {
+                        //println!("TB = {:?}",t);
+                        for i in 0..cnt
+                        {
+                            let tmp = t[x  +i];
+                            t[x  +i]     = t[inx+i];
+                            t[inx+i]     = tmp;
+                        }        
+
+                        //println!("swap {}x{} = {}",x,inx,cnt);    
+                        //println!("TA = {:?}",t);
+                        break;
+                    }                    
+                }
+            }
+        }
+    }
+
+    check_sum(&t) as u128   
 }
 
 
-pub fn part1(data:&[String])->usize
+pub fn part1(data:&[String])->u128
 {
    data.iter()
-       .map(|n| ok1(n))
+       .map(|n| ok(n))
        .sum()
 }
 
-pub fn part2(data:&[String])->usize
+pub fn part2(data:&[String])->u128
 {
     data.iter()
-        .map(|n| ok2(n))
-        .sum()
+    .map(|n| ok2(n))
+    .sum()
 }
 
 #[allow(unused)]
 pub fn solve(data:&[String])
 {    
-    println!("Day9");
+    println!("Day2");
     println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
@@ -112,14 +186,16 @@ pub fn solve(data:&[String])
 fn test1()
 {
     let v = vec![
+        "2333133121414131402".to_string(),
     ];
-    assert_eq!(part1(&v),3749);
+    assert_eq!(part1(&v),1928);
 }
 
 #[test]
 fn test2()
 {
     let v = vec![
+        "2333133121414131402".to_string(),
     ];
-    assert_eq!(part2(&v),11387);
+    assert_eq!(part2(&v),2858);
 }

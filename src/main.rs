@@ -70,7 +70,7 @@ fn main() {
     println!("pixoo_test_text: {:?}", num);
     return
  */    
-
+/*
     {
         let _timer = Timer::new();
         let day1_data = tools::read_1d_string("data/day01.txt");
@@ -119,7 +119,7 @@ fn main() {
         let day8_data  = tools::read_1d_string("data/day08.txt");
         day08::solve(&day8_data);
     }
-    //*/        
+    */        
             
     {
         let _timer = Timer::new();
