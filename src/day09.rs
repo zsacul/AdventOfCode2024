@@ -1,32 +1,19 @@
-fn check_sum(t:&Vec<(u32)>)->u128
-{
-    let dot = 9999999u32;    
+const DOT : usize = 9999999;
 
-    t.iter().enumerate().map(|(ii,&n)|       
-        if n==dot
-        {
-            0
-        }
-        else
-        {
-            (ii as u128)*(n as u128)
-        }
+fn check_sum(t:&[usize])->usize
+{
+    t.iter().enumerate().map(|(id,&n)|       
+        if n==DOT {    0 }
+             else { id*n }
     ).sum()
 }
 
-fn ok(s:&str)->u128
+fn get_blocks(s:&str)->Vec<usize>
 {
     let mut blocks = vec![];
-
-    let mut id=0u32;
-
-    let mut t : Vec<u32> = vec![];
-
-
-    let dot = 9999999u32;
     let mut down = true;
 
-    for c in s.chars()
+    for (id,c) in s.chars().enumerate()
     {
         let n = c.to_digit(10).unwrap();
 
@@ -38,45 +25,42 @@ fn ok(s:&str)->u128
             }
                 else
             {
-                blocks.push(dot);
+                blocks.push(DOT);
             }                
         }
         
         down = !down;
-        id+=1;    
     }
 
-    t = blocks.clone();
+    blocks
+}
 
-    //blocks.push((n,prev,id));
-    //println!("{:?}",blocks);
-    
+fn ok(s:&str)->usize
+{
+    let mut blocks = get_blocks(s);
 
     let mut l = 0;
-    let mut r = t.len()-1;
+    let mut r = blocks.len()-1;
 
     while l<r
     {
-        while t[l]!=dot {l+=1;}
-        while t[r]==dot {r-=1;}
+        while blocks[l]!=DOT { l+=1; }
+        while blocks[r]==DOT { r-=1; }
 
-        if l>=r {break;}
+        if l>=r { break; }
 
-        if t[l]==dot && t[r]!=dot
+        if blocks[l]==DOT && blocks[r]!=DOT
         {
-            let tmp = t[l];
-            t[l] = t[r];
-            t[r] = tmp;
-
+            blocks.swap(l, r);
             l+=1;
             r-=1;
         }
     }
 
-    check_sum(&t) as u128    
+    check_sum(&blocks)
 }
 
-fn count(t:&Vec<u32>,n:usize)->usize
+fn count(t:&[usize],n:usize)->usize
 {
     let mut i = n;
     let v = t[i];
@@ -89,66 +73,31 @@ fn count(t:&Vec<u32>,n:usize)->usize
     i-n    
 }
 
-fn ok2(s:&str)->u128
+fn ok2(s:&str)->usize
 {
-    let mut blocks = vec![];
-    let mut id=0u32;
-    let mut t : Vec<u32> = vec![];
-
-    let dot = 9999999u32;
-    let mut down = true;
-
-
-    for c in s.chars()
-    {
-        let n = c.to_digit(10).unwrap();
-
-        for x in 0..n
-        {
-            if down
-            {
-                blocks.push(id/2);
-            }
-                else
-            {
-                blocks.push(dot);
-            }                
-        }
-        
-        down = !down;
-        id+=1;    
-    }
-
-    t = blocks.clone();
+    let mut blocks = get_blocks(s);
 
     for io in (0..=s.len()/2).rev()
     {        
-        let f = t.iter().enumerate().find(|&(_,e)|*e==io as u32);
+        let f = blocks.iter().enumerate().find(|&(_,e)|*e==io);
         
         if f.is_some()
         {
-            let inx = f.unwrap().0 as usize;
-            let cnt = count(&t,inx);
+            let inx = f.unwrap().0;
+            let cnt = count(&blocks,inx);
 
-            for x in 0..t.len()
+            for x in 0..blocks.len()
             {
-                if t[x]==dot && x<inx
+                if blocks[x]==DOT && x<inx
                 {
-                    let dots = count(&t, x);
-                    //println!("DOTS={}x{}",x,dots);
+                    let dots = count(&blocks, x);
                     
                     if dots>=cnt
                     {
-                        //println!("TB = {:?}",t);
                         for i in 0..cnt
                         {
-                            let tmp = t[x  +i];
-                            t[x  +i]     = t[inx+i];
-                            t[inx+i]     = tmp;
+                            blocks.swap(x  +i, inx+i);
                         }        
-
-                        //println!("swap {}x{} = {}",x,inx,cnt);    
-                        //println!("TA = {:?}",t);
                         break;
                     }                    
                 }
@@ -156,22 +105,22 @@ fn ok2(s:&str)->u128
         }
     }
 
-    check_sum(&t) as u128   
+    check_sum(&blocks)
 }
 
 
-pub fn part1(data:&[String])->u128
+pub fn part1(data:&[String])->usize
 {
    data.iter()
        .map(|n| ok(n))
        .sum()
 }
 
-pub fn part2(data:&[String])->u128
+pub fn part2(data:&[String])->usize
 {
     data.iter()
-    .map(|n| ok2(n))
-    .sum()
+        .map(|n| ok2(n))
+        .sum()
 }
 
 #[allow(unused)]
