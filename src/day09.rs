@@ -126,7 +126,7 @@ pub fn part2(data:&[String])->usize
 #[allow(unused)]
 pub fn solve(data:&[String])
 {    
-    println!("Day2");
+    println!("Day9");
     println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
