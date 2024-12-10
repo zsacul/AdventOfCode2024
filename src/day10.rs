@@ -32,52 +32,39 @@ impl Data {
 
     fn count(&mut self,part_two:bool)->usize
     {
-        
         let start : Vec<Vec2> = self.hash.clone()
-                                        .into_iter()
-                                        .filter(|&(_,v)| v==0)
-                                        .map(|(k,_)| k)
-                                        .collect();
+                                         .into_iter()
+                                         .filter(|&(_,v)| v==0)
+                                         .map(|(k,_)| k)
+                                         .collect();
                                     
         let mut count = 0;
         
         for s in start
         {
             let mut stack = vec![s];
-            let mut tab = vec![vec![0;self.dx];self.dy];
+            let mut tab   = vec![vec![0;self.dx];self.dy];
 
-            while !stack.is_empty()
+            while let Some(p) = stack.pop()
             {
-                let p = stack.pop().unwrap();
                 let n = tab[p.y as usize][p.x as usize];
 
-                    for dir in Vec2::dirs4()
+                for dir in Vec2::dirs4()
+                {
+                    let p2 = p.addv(dir);
+
+                    if self.pos(p2) && self.hash[&p2]==n+1 && (part_two || tab[p2.y as usize][p2.x as usize]==0)
                     {
-                        let p2 = p.addv(dir);
-
-                        if self.pos(p2) && self.hash[&p2]==n+1 && (part_two || tab[p2.y as usize][p2.x as usize]==0)
-                        {
-                            tab[p2.y as usize][p2.x as usize] = n+1;
-                        
-                            if n+1==9 
-                            {
-                                count+=1;
-                            }
-                            else 
-                            {
-                                stack.push(p2);    
-                            }
-                        }
+                        tab[p2.y as usize][p2.x as usize] = n+1;
+                    
+                        if n+1==9 { count+=1; }
+                        stack.push(p2);    
                     }
-
+                }
             }
         }
-
         count
     }
-
-  
-
 }
 
 pub fn part1(data:&[String])->usize
