@@ -7,7 +7,7 @@ fn calc(s:String,i:usize,n:usize,hash:&mut HashMap<(String,usize),usize>)->usize
         return hash[&(s,i)];
     }
     
-    let mut st :Vec<i64> = s.split_whitespace().map(|a|a.parse().unwrap()).collect();
+    let st :Vec<usize> = s.split_whitespace().map(|a|a.parse().unwrap()).collect();
     let mut st2 = vec![];
 
     for &s in st.iter()
@@ -19,8 +19,8 @@ fn calc(s:String,i:usize,n:usize,hash:&mut HashMap<(String,usize),usize>)->usize
         else if (s.to_string().len()%2)==0
         {
             let ss = s.to_string();
-            let s1 = ss[          ..ss.len()/2].parse::<i64>().unwrap();
-            let s2 = ss[ss.len()/2..          ].parse::<i64>().unwrap();
+            let s1 = ss[          ..ss.len()/2].parse::<usize>().unwrap();
+            let s2 = ss[ss.len()/2..          ].parse::<usize>().unwrap();
             st2.push(s1);
             st2.push(s2);
         }
@@ -28,18 +28,16 @@ fn calc(s:String,i:usize,n:usize,hash:&mut HashMap<(String,usize),usize>)->usize
             st2.push(s*2024);
         }
     }
-    st = st2.clone();
-    st2.clear();
 
     if i==n-1
     {
-        hash.insert((s,i),st.len());
-        st.len()
+        hash.insert((s,i),st2.len());
+        st2.len()
     }
     else
     {
         let mut cnt = 0;
-        for &s in st.iter()
+        for &s in st2.iter()
         {
             cnt+=calc(s.to_string(),i+1,n,hash)
         }
