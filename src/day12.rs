@@ -61,14 +61,14 @@ impl Data {
                     }
                     else
                     {
-                        self.fen.insert( Vec2::new(2*p.x+1, 2*p.y),b'|');
+                        self.fen.insert( Vec2::new(2*p.x+1, 2*p.y),b'1');
                     }
                 }
                 else
                 {
                     if n.y<p.y
                     {
-                        self.fen.insert( Vec2::new(2*p.x, 2*p.y-1),b'-');
+                        self.fen.insert( Vec2::new(2*p.x, 2*p.y-1),b'2');
                     }
                     else
                     {
@@ -134,7 +134,7 @@ impl Data {
                 if self.visited.contains(&pp) { continue; }
                 
                 let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);
-                    println!("{} = {:?} {:?}",self.hash[&pp] as char,f.0,f.1);
+                    //println!("{} = {:?} {:?}",self.hash[&pp] as char,f.0,f.1);
                     res+=f.0*f.1;
                 
             }            
@@ -142,7 +142,6 @@ impl Data {
         res
     }
 
-    //807534 too low
     fn print_fen(&self)
     {
         for y in -1..=(self.dy as i64*2)+1
@@ -157,16 +156,65 @@ impl Data {
         }             
     }
 
+    fn count_horizontally(&self,c:u8)->usize
+    {
+        let mut hor =0;
+        for y in (-1..=(self.dy as i64*2)+1).step_by(2)
+        {
+            let mut h=0;
+            let mut prev = 0;
+            for x in (0..=(self.dx as i64)*2+1).step_by(2)
+            {                        
+                let p = Vec2::new(x,y);
+                if self.fen.contains_key(&p) && self.fen[&p]==c
+                {
+                    if prev==c { h+=1; }
+                          else { if h>0 {hor+=1;} h=1;}                            
+                }
+                else
+                {
+                    if h>0 {hor+=1;}
+                    h=0;
+                }
+                prev = *self.fen.get(&p).unwrap_or(&0);
+                
+            }                   
+            if h>0 { hor+=1; }    
+        }
+        hor
+    }
+
+    fn count_vertically(&self,c:u8)->usize
+    {
+        let mut ver =0;
+        for x in (-1..=(self.dx as i64*2)+1).step_by(2)
+        {
+            let mut v=0;
+            let mut prev = 0;
+            for y in (0..=(self.dy as i64*2)+1).step_by(2)
+            {                        
+                let p = Vec2::new(x,y);
+                if self.fen.contains_key(&p) && self.fen[&p]==c
+                {
+                    if prev==c { v+=1; }
+                            else { if v>0 {ver+=1;} v=1;} 
+                }
+                else
+                {
+                    if v>0 {ver+=1;}
+                    v=0;
+                }
+                prev = *self.fen.get(&p).unwrap_or(&0);
+            }               
+            if v>0 { ver+=1; }    
+        }
+        ver
+    }
 
 
     fn count2(&mut self,part_two:bool)->usize
     {
         let mut res = 0;
-        //let mut used = HashSet::new();
-
-        let mut calcP = HashMap::new();
-        let mut calcF = HashMap::new();
-
 
         for y in 0..self.dy
         {
@@ -176,83 +224,18 @@ impl Data {
                 if self.visited.contains(&pp) { continue; }
 
                 self.fen.clear();
-                let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);   
-
+                let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);              
                 
-                //self.print_fen();                
-                let mut hor =0;
+                let fence = self.count_horizontally(b'-') + self.count_horizontally(b'2') +
+                                   self.count_vertically(b'1')   + self.count_vertically(b'|');
 
-                for y in (-1..=(self.dy as i64*2)+1).step_by(2)
-                {
-                    let mut h=0;
-                    let mut prev = 0;
-                    for x in (0..=(self.dx as i64)*2+1).step_by(2)
-                    {                        
-                        let p = Vec2::new(x,y);
-                        if self.fen.contains_key(&p) && self.fen[&p]==b'-'
-                        {
-                            if prev==b'-' { h+=1; }
-                                     else { if h>0 {hor+=1;} h=1;}                            
-                        }
-                        else
-                        {
-                            if h>0 {hor+=1;}
-                            h=0;
-                        }
-                        prev = *self.fen.get(&p).unwrap_or(&0);
-                        
-                    }                   
-                    if h>0 { hor+=1; }    
-                }
-
-                let mut ver =0;
-
-                for x in (-1..=(self.dx as i64*2)+1).step_by(2)
-                {
-                    let mut v=0;
-                    let mut prev = 0;
-                    for y in (0..=(self.dy as i64*2)+1).step_by(2)
-                    {                        
-                        let p = Vec2::new(x,y);
-                        if self.fen.contains_key(&p) && self.fen[&p]==b'|'
-                        {
-                            if prev==b'|' { v+=1; }
-                                     else { if v>0 {ver+=1;} v=1;} 
-                        }
-                        else
-                        {
-                            if v>0 {ver+=1;}
-                            v=0;
-                        }
-                        prev = *self.fen.get(&p).unwrap_or(&0);
-                    }               
-                    if v>0 { ver+=1; }    
-                }
-
-
-                
-                //let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);
-                //println!("{} = {:?} {:?}",self.hash[&pp] as char,f.0,f.1);
-                res+=f.0*(ver+hor);
-                let letter = self.hash[&pp] as char;
-
-                println!("{} = {:?} {:?} {:?}",letter,f.0,ver,hor);
-                
-                *calcP.entry(letter).or_insert(0)+=f.0;
-                *calcF.entry(letter).or_insert(0)+=ver+hor;
-                                                        
+                res+=f.0*fence;
             }            
         }
-
-        res = 
-        calcP.iter()
-        .map( |f| f.1*calcF[f.0] )        
-        .sum();
 
         res
     }
 }
-
 
 pub fn part1(data:&[String])->usize
 {
