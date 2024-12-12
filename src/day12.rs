@@ -2,15 +2,14 @@ use std::collections::{HashMap,HashSet,VecDeque};
 use super::vec2::Vec2;
 use super::tools;
 
-
 #[derive(Debug)]
 struct Data 
 {
-    hash : HashMap<Vec2,u8>,
-    fen : HashMap<Vec2,u8>,
+    hash    : HashMap<Vec2,u8>,
+    fen     : HashMap<Vec2,u8>,
     visited : HashSet<Vec2>,
-      dx : usize,
-      dy : usize
+    dx : usize,
+    dy : usize
 }
 
 impl Data {
@@ -23,10 +22,10 @@ impl Data {
         let data = Data 
         {
             hash,           
-            fen: HashMap::new(),           
+            fen     : HashMap::new(),           
             visited : HashSet::new(),
-            dx  : input[0].len(),
-            dy  : input.len(),
+            dx      : input[0].len(),
+            dy      : input.len(),
         };
         data
     }
@@ -61,14 +60,14 @@ impl Data {
                     }
                     else
                     {
-                        self.fen.insert( Vec2::new(2*p.x+1, 2*p.y),b'1');
+                        self.fen.insert( Vec2::new(2*p.x+1, 2*p.y),b'^');
                     }
                 }
                 else
                 {
                     if n.y<p.y
                     {
-                        self.fen.insert( Vec2::new(2*p.x, 2*p.y-1),b'2');
+                        self.fen.insert( Vec2::new(2*p.x, 2*p.y-1),b'>');
                     }
                     else
                     {
@@ -84,10 +83,14 @@ impl Data {
     fn flood(&mut self,p:Vec2,n:i8,part_two:bool)->(usize,usize)
     {
         let mut stack = VecDeque::new();
-        let mut fie = 0;
+        let mut field = 0;
+
+        if self.visited.contains(&p) { return (0,0); }
 
         stack.push_back(p);
         let mut fen = 0;
+
+        
 
         while let Some(p) = stack.pop_front()
         {
@@ -96,7 +99,7 @@ impl Data {
                 let n = self.hash[&p];
                 self.visited.insert(p);
 
-                fie+=1;
+                field+=1;
                 
                 if part_two
                 {
@@ -118,28 +121,17 @@ impl Data {
                 }
             }
         }
-        (fie,fen)
+        (field,fen)
     }
 
-    fn count(&mut self,part_two:bool)->usize
+    fn count1(&mut self)->usize
     {
-        let mut res = 0;
-        //let mut used = HashSet::new();
-
-        for y in 0..self.dy
-        {
-            for x in 0..self.dx
+        tools::get_2d_i(self.dx,self.dy).iter().map(|(&(x,y))|
             {
-                let pp = Vec2::new(x as i64,y as i64);
-                if self.visited.contains(&pp) { continue; }
-                
-                let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);
-                    //println!("{} = {:?} {:?}",self.hash[&pp] as char,f.0,f.1);
-                    res+=f.0*f.1;
-                
-            }            
-        }
-        res
+                let (field,fence) = self.flood(Vec2::new(x as i64,y as i64),0,false);                
+                field*fence
+            }
+        ).sum()
     }
 
     fn print_fen(&self)
@@ -197,7 +189,7 @@ impl Data {
                 if self.fen.contains_key(&p) && self.fen[&p]==c
                 {
                     if prev==c { v+=1; }
-                            else { if v>0 {ver+=1;} v=1;} 
+                          else { if v>0 {ver+=1;} v=1; } 
                 }
                 else
                 {
@@ -212,7 +204,7 @@ impl Data {
     }
 
 
-    fn count2(&mut self,part_two:bool)->usize
+    fn count2(&mut self)->usize
     {
         let mut res = 0;
 
@@ -224,10 +216,10 @@ impl Data {
                 if self.visited.contains(&pp) { continue; }
 
                 self.fen.clear();
-                let f = self.flood(Vec2::new(x as i64,y as i64),0,part_two);              
+                let f = self.flood(Vec2::new(x as i64,y as i64),0,true);
                 
-                let fence = self.count_horizontally(b'-') + self.count_horizontally(b'2') +
-                                   self.count_vertically(b'1')   + self.count_vertically(b'|');
+                let fence = self.count_horizontally(b'-') + self.count_horizontally(b'>') +
+                                   self.count_vertically(b'^')   + self.count_vertically(b'|');
 
                 res+=f.0*fence;
             }            
@@ -239,12 +231,12 @@ impl Data {
 
 pub fn part1(data:&[String])->usize
 {
-    Data::new(data).count(false)
+    Data::new(data).count1()
 }
 
 pub fn part2(data:&[String])->usize
 {    
-    Data::new(data).count2(true)   
+    Data::new(data).count2()   
 }
 
 #[allow(unused)]
