@@ -243,8 +243,8 @@ pub fn part2(data:&[String])->usize
 pub fn solve(data:&[String])
 {    
     println!("Day12");
-    println!("part1:{}",part1(data));
-    println!("part2:{}",part2(data));
+    println!("part1: {}",part1(data));
+    println!("part2: {}",part2(data));
 }
 
 #[test]
