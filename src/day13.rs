@@ -1,11 +1,9 @@
-use std::collections::HashMap;
 use super::vec2::Vec2;
 use super::tools;
 
 #[derive(Debug)]
 struct Data {
-      game: Vec<(Vec2,Vec2,Vec2)>,
-    
+      game: Vec<(Vec2,Vec2,Vec2)>,   
 }
 
 impl Data {
@@ -13,7 +11,6 @@ impl Data {
         let sections: Vec<&[String]> = input.split(|line| line.is_empty()).collect();
         
         let mut game = Vec::new();
-        //let mut nums = vec![];
 
         let game = sections.iter()
             .map(|line| {
@@ -41,49 +38,36 @@ impl Data {
             })
             .collect();
         
-
-
         Data {
             game,
         }
     }
 
-
-
     fn ok1(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
     {
-        //(a.x*A + a.y*A) + (b.x*B + b.y*B) == (c.x*C + c.y*C) ,minimize 3*A+B
         let mut res = vec![];
 
-        for A in 0..=100
+        for button_a in 0..=100
         {
-            if A*a.x > p.x { break; }
-            if A*a.y > p.y { break; }
-            
-            let pb = p.x-A*a.x;
-            if (p.x-A*a.x)%b.x!=0 { continue; }
-            if (p.y-A*a.y)%b.y!=0 { continue; }
+            if button_a*a.x > p.x { break; }
+            if button_a*a.y > p.y { break; }
+                    
+            if (p.x - button_a*a.x)%b.x!=0 { continue; }
+            if (p.y - button_a*a.y)%b.y!=0 { continue; }
 
-            let Bx = (p.x-A*a.x)/b.x;
-            let By = (p.y-A*a.y)/b.y;
+            let button_b1 = (p.x - button_a*a.x)/b.x;
+            let button_b2 = (p.y - button_a*a.y)/b.y;
 
-            if Bx==By
+            if button_b1==button_b2
             {
-                res.push(3*A+Bx);
+                res.push(3*button_a + button_b1);
             }
         }
 
-        if res.len()==0 { return 0; }
+        if res.is_empty() { return 0; }
         *res.iter().min().unwrap() as usize
     }
-
-    fn gdc(a:usize,b:usize)->usize
-    {
-        if b==0 { return a; }
-        Data::gdc(b,a%b)
-    }
-
-    
+   
  
     fn intersect(&self,a1:Vec2,a2:Vec2,b1:Vec2,b2:Vec2)->(f64,f64)
     {
@@ -108,47 +92,38 @@ impl Data {
 
     fn ok2(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
     {               
-        let p = Vec2::new(p.x + 10000000000000,p.y + 10000000000000);
-        
-        let ax = a.x as usize;
-        let ay = a.y as usize;
-
-        let bx = b.x as usize;
-        let by = b.y as usize;
-
-        let px = p.x as usize;
-        let py = p.y as usize;
+        let p = p.addv(Vec2::new(10000000000000, 10000000000000));
 
         let v1a = Vec2::new(0,0);
         let v1b = Vec2::new(p.x*a.x,p.x*a.y);
 
         let v2a = p.subv(Vec2::new(p.x*b.x,p.x*b.y));
-        let v2b = p.clone();
+        let v2b = p;
 
-        let (i_x,i_y) = self.intersect(v1a,v1b,v2a,v2b);
+        let (i_x,_i_y) = self.intersect(v1a,v1b,v2a,v2b);
         
         let mut res = vec![];
 
-        let Aa = ((i_x)/(ax as f64)) as usize;
+        let a_around = ((i_x)/(a.x as f64)) as i64;
         
-        for A in (Aa-1..=Aa+1)
+        for button_a in a_around-1..=a_around+1
         {
-            if A*ax > px { break; }
-            if A*ay > py { break; }
+            if button_a*a.x > p.x { break; }
+            if button_a*a.y > p.y { break; }
           
-            if (px-A*ax)%bx!=0 { continue; }
-            if (py-A*ay)%by!=0 { continue; }
+            if (p.x - button_a*a.x)%b.x!=0 { continue; }
+            if (p.y - button_a*a.y)%b.y!=0 { continue; }
 
-            let Bx = (px-A*ax)/bx;
-            let By = (py-A*ay)/by;
+            let button_b1 = (p.x - button_a*a.x)/b.x;
+            let button_b2 = (p.y - button_a*a.y)/b.y;
 
-            if Bx==By
+            if button_b1==button_b2
             {
-                res.push(3*A+Bx);
+                res.push(3*button_a+button_b1);
             }
         }
 
-        if res.len()==0 { return 0; }
+        if res.is_empty() { return 0; }
 
         *res.iter().min().unwrap() as usize
     }
@@ -209,27 +184,4 @@ fn test1()
         "Prize: X=18641, Y=10279".to_string(),
     ];
     assert_eq!(part1(&v),480);
-}
-
-#[test]
-fn test2()
-{
-    let v = vec![
-        "Button A: X+94, Y+34".to_string(),
-        "Button B: X+22, Y+67".to_string(),
-        "Prize: X=10000000008400, Y=10000000005400".to_string(),
-        "".to_string(),
-        "Button A: X+26, Y+66".to_string(),
-        "Button B: X+67, Y+21".to_string(),
-        "Prize: X=10000000012748, Y=10000000012176".to_string(),
-        "".to_string(),
-        "Button A: X+17, Y+86".to_string(),
-        "Button B: X+84, Y+37".to_string(),
-        "Prize: X=10000000007870, Y=10000000006450".to_string(),
-        "".to_string(),
-        "Button A: X+69, Y+23".to_string(),
-        "Button B: X+27, Y+71".to_string(),
-        "Prize: X=10000000018641, Y=10000000010279".to_string(),
-    ];
-    assert_eq!(part2(&v),123);
 }

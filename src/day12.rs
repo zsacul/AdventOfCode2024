@@ -19,15 +19,14 @@ impl Data {
                                                 .map(|(k,v)| (*k, *v as u8) )
                                                 .collect::<HashMap<Vec2,u8>>();
             
-        let data = Data 
+        Data 
         {
             hash,           
             fen     : HashMap::new(),           
             visited : HashSet::new(),
             dx      : input[0].len(),
             dy      : input.len(),
-        };
-        data
+        }        
     }
    
     fn pos(&self,p:Vec2)->bool
@@ -45,9 +44,10 @@ impl Data {
         c
     }
 
+    #[allow(clippy::collapsible_else_if)]
     fn fence2(&mut self,p:Vec2)->usize
     {
-        let mut c = 0;
+        let c = 0;
         for &n in p.around4().iter()
         {
             if !self.pos(n) || self.hash[&n]!=self.hash[&p] 
@@ -63,7 +63,7 @@ impl Data {
                         self.fen.insert( Vec2::new(2*p.x+1, 2*p.y),b'^');
                     }
                 }
-                else
+                  else
                 {
                     if n.y<p.y
                     {
@@ -80,7 +80,7 @@ impl Data {
     }
 
 
-    fn flood(&mut self,p:Vec2,n:i8,part_two:bool)->(usize,usize)
+    fn flood(&mut self,p:Vec2,part_two:bool)->(usize,usize)
     {
         let mut stack = VecDeque::new();
         let mut field = 0;
@@ -126,21 +126,22 @@ impl Data {
 
     fn count1(&mut self)->usize
     {
-        tools::get_2d_i(self.dx,self.dy).iter().map(|(&(x,y))|
+        tools::get_2d_i(self.dx,self.dy).iter().map(|&(x,y)|
             {
-                let (field,fence) = self.flood(Vec2::new(x as i64,y as i64),0,false);                
+                let (field,fence) = self.flood(Vec2::new(x as i64,y as i64),false);                
                 field*fence
             }
         ).sum()
     }
 
+    #[allow(unused)]
     fn print_fen(&self)
     {
         for y in -1..=(self.dy as i64*2)+1
         {
             for x in -1..=(self.dx as i64*2)+1
             {   
-                let vv = *self.fen.get(&Vec2::new(x as i64,y as i64)).unwrap_or(&b'.');
+                let vv = *self.fen.get(&Vec2::new(x,y)).unwrap_or(&b'.');
                 print!("{}",vv as char);
             }
             
@@ -216,7 +217,7 @@ impl Data {
                 if self.visited.contains(&pp) { continue; }
 
                 self.fen.clear();
-                let f = self.flood(Vec2::new(x as i64,y as i64),0,true);
+                let f = self.flood(Vec2::new(x as i64,y as i64),true);
                 
                 let fence = self.count_horizontally(b'-') + self.count_horizontally(b'>') +
                                    self.count_vertically(b'^')   + self.count_vertically(b'|');
