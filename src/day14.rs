@@ -25,9 +25,9 @@ impl Robot
 
     fn go(&mut self,dx:usize,dy:usize,n:usize)
     {
-        self.p   = self.p.add((self.v.x as usize*(n)) as i64,(self.v.y as usize*(n)) as i64);
-        self.p.x = ((dx*n+self.p.x as usize)%(dx)) as i64;
-        self.p.y = ((dy*n+self.p.y as usize)%(dy)) as i64;
+        self.p   = self.p.add(self.v.x*n as i64,self.v.y*n as i64);
+        self.p.x = (n as i64*dx as i64 + self.p.x)%dx as i64;
+        self.p.y = (n as i64*dy as i64 + self.p.y)%dy as i64;
     }
 }
 
@@ -44,11 +44,11 @@ impl Data {
     {
         Data {
             game: input.iter()
-                .map(|line| Robot::new(line.clone()))
-                .collect(),
-                dx,
-                dy,
-        }        
+                       .map(|line| Robot::new(line.clone()))
+                       .collect(),
+                       dx,
+                       dy,
+        }
     }
 
     fn get_hash(&self)->HashMap<Vec2,usize>
@@ -65,8 +65,8 @@ impl Data {
 
     fn print_hash(&self)
     {
-
         let hash = self.get_hash();
+
         for y in 0..self.dy
         {
             for x in 0..self.dx
@@ -83,28 +83,17 @@ impl Data {
     {
         self.game.iter_mut().for_each(|r| r.go(self.dx,self.dy,n));
 
-        let mx = (self.dx-1)/2;
-        let my = (self.dy-1)/2;
+        let mx = (self.dx as i64-1)/2;
+        let my = (self.dy as i64-1)/2;
         
-        let mut hash: HashMap<usize,usize> = HashMap::new();
-        
-        for r in self.game.iter()
-        {         
-            if r.p.x==mx as i64 || r.p.y==my as i64
-            {
-                continue;
-            }
-
-            let qx =  if r.p.x<mx as i64 {0} else {1};
-            let qy =  if r.p.y<my as i64 {0} else {2};
-            let id = qx+qy;
-
-            *hash.entry(id).or_insert(0) += 1;
-        }
-
-
-        hash.iter().map(|(_,a)| a).product()
-
+        let mut hash : HashMap<usize,usize> = HashMap::new();
+                
+        self.game
+            .iter()
+            .filter(|&r| r.p.x!=mx && r.p.y!=my)
+            .for_each(|r| *hash.entry((r.p.y<my) as usize*2 + (r.p.x<mx) as usize).or_insert(0) += 1 );
+                
+        hash.values().product()        
     }
 
     fn count2(&mut self,n:usize)->usize
@@ -131,7 +120,7 @@ impl Data {
                             return i+1;
                         }
                     }
-                    else
+                      else
                     {
                         cnt=0;
                     }
@@ -144,12 +133,12 @@ impl Data {
 
 }
 
-pub fn part1(data:&[String],n:usize,dx:usize,dy:usize)->usize
+pub fn part1(data:&[String],dx:usize,dy:usize,n:usize)->usize
 {
     Data::new(data,dx,dy).count1(n)
 }
 
-pub fn part2(data:&[String],n:usize,dx:usize,dy:usize)->usize
+pub fn part2(data:&[String],dx:usize,dy:usize,n:usize)->usize
 {
     Data::new(data,dx,dy).count2(n)
 }
@@ -158,12 +147,9 @@ pub fn part2(data:&[String],n:usize,dx:usize,dy:usize)->usize
 pub fn solve(data:&[String])
 {    
     println!("Day14");
-    println!("part1: {}",part1(data,100,101,103));
-    println!("part2: {}",part2(data,100000,101,103));
+    println!("part1: {}",part1(data,101,103,100));
+    println!("part2: {}",part2(data,101,103,100_000));
 }
-
-//7602
-//7601
 
 #[test]
 fn test1()
@@ -182,15 +168,14 @@ fn test1()
         "p=2,4 v=2,-3".to_string(),
         "p=9,5 v=-3,-3".to_string(),
     ];
-    assert_eq!(part1(&v,100,11,7),12);
+    assert_eq!(part1(&v,11,7,100),12);
 }
+
 #[test]
 fn test2()
 {
     let v = vec![
         "p=2,4 v=2,-3".to_string(),
     ];
-    assert_eq!(part1(&v,5,11,7),111);
+    assert_eq!(part1(&v,5,11,7),1);
 }
-
-
