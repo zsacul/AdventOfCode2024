@@ -1,3 +1,5 @@
+use tokio::time::error::Elapsed;
+
 use super::vec2::Vec2;
 use super::tools;
 
@@ -45,49 +47,22 @@ impl Data {
 
     fn ok1(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
     {
-        let mut res = vec![];
-
-        for button_a in 0..=100
-        {
-            if button_a*a.x > p.x { break; }
-            if button_a*a.y > p.y { break; }
-                    
-            if (p.x - button_a*a.x)%b.x!=0 { continue; }
-            if (p.y - button_a*a.y)%b.y!=0 { continue; }
-
-            let button_b1 = (p.x - button_a*a.x)/b.x;
-            let button_b2 = (p.y - button_a*a.y)/b.y;
-
-            if button_b1==button_b2
-            {
-                res.push(3*button_a + button_b1);
-            }
-        }
-
-        if res.is_empty() { return 0; }
-        *res.iter().min().unwrap() as usize
-    }
-   
- 
-    fn intersect(&self,a1:Vec2,a2:Vec2,b1:Vec2,b2:Vec2)->(f64,f64)
-    {
-        let s1_x = a2.x as f64 - a1.x as f64;
-        let s1_y = a2.y as f64 - a1.y as f64;
-        let s2_x = b2.x as f64 - b1.x as f64;
-        let s2_y = b2.y as f64 - b1.y as f64;
-
-        let s = (-s1_y * (a1.x as f64 - b1.x as f64) + s1_x * (a1.y as f64 - b1.y as f64)) / (-s2_x * s1_y + s1_x * s2_y);
-        let t = ( s2_x * (a1.y as f64 - b1.y as f64) - s2_y * (a1.x as f64 - b1.x as f64)) / (-s2_x * s1_y + s1_x * s2_y);
-
-        if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&s)
-        {
-            let i_x = a1.x as f64 + (t * s1_x);
-            let i_y = a1.y as f64 + (t * s1_y);
-
-            return (i_x,i_y);
-        }
-
-        (-1.0,-1.0)
+        (0..=100).filter_map(|button_a|       
+            if button_a*a.x < p.x &&
+               button_a*a.y < p.y &&                    
+               (p.x - button_a*a.x)%b.x==0 &&
+               (p.y - button_a*a.y)%b.y==0 &&
+               (p.x - button_a*a.x)/b.x==(p.y - button_a*a.y)/b.y
+               {
+                    let button_b = (p.x - button_a*a.x)/b.x;
+                    Some(3*button_a + button_b)
+               }
+                 else
+               {
+                    None
+               }
+            ).min()
+            .unwrap_or(0) as usize
     }
 
     fn ok2(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
@@ -100,40 +75,30 @@ impl Data {
         let v2a = p.subv(Vec2::new(p.x*b.x,p.x*b.y));
         let v2b = p;
 
-        let (i_x,_i_y) = self.intersect(v1a,v1b,v2a,v2b);
-        
-        let mut res = vec![];
-
-        let a_around = ((i_x)/(a.x as f64)) as i64;
-        
-        for button_a in a_around-1..=a_around+1
-        {
-            if button_a*a.x > p.x { break; }
-            if button_a*a.y > p.y { break; }
-          
-            if (p.x - button_a*a.x)%b.x!=0 { continue; }
-            if (p.y - button_a*a.y)%b.y!=0 { continue; }
-
-            let button_b1 = (p.x - button_a*a.x)/b.x;
-            let button_b2 = (p.y - button_a*a.y)/b.y;
-
-            if button_b1==button_b2
-            {
-                res.push(3*button_a+button_b1);
-            }
-        }
-
-        if res.is_empty() { return 0; }
-
-        *res.iter().min().unwrap() as usize
-    }
+        let (i_x,_i_y) = Vec2::intersect(v1a,v1b,v2a,v2b);
+        let a_around = (i_x/(a.x as f64)) as i64;
+                
+        (a_around-1..=a_around+1).filter_map(|button_a|            
+             if button_a*a.x < p.x && 
+                button_a*a.y < p.y &&
+                (p.x - button_a*a.x)%b.x==0 &&
+                (p.y - button_a*a.y)%b.y==0 &&     
+                (p.x - button_a*a.x)/b.x==(p.y - button_a*a.y)/b.y
+                {
+                    let button_b = (p.x - button_a*a.x)/b.x;
+                    Some(3*button_a + button_b)
+                } else {
+                    None
+                }
+        ).min()
+         .unwrap_or(0) as usize
+       }
 
     fn count1(&self)->usize
     {
         self.game.iter()
             .map(|n| self.ok1(n.0,n.1,n.2) )
             .sum()
-    
     }
 
     fn count2(&self)->usize

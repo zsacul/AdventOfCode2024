@@ -233,7 +233,30 @@ impl Vec2 {
             Vec2::new(-1, 0), Vec2::new( 0, 0), Vec2::new( 1, 0),
             Vec2::new(-1, 1), Vec2::new( 0, 1), Vec2::new( 1, 1),
          ]
+    } 
+ 
+    #[allow(unused)]
+    pub fn intersect(a1:Vec2,a2:Vec2,b1:Vec2,b2:Vec2)->(f64,f64)
+    {
+        let s1_x = a2.x as f64 - a1.x as f64;
+        let s1_y = a2.y as f64 - a1.y as f64;
+        let s2_x = b2.x as f64 - b1.x as f64;
+        let s2_y = b2.y as f64 - b1.y as f64;
+
+        let s = (-s1_y * (a1.x as f64 - b1.x as f64) + s1_x * (a1.y as f64 - b1.y as f64)) / (-s2_x * s1_y + s1_x * s2_y);
+        let t = ( s2_x * (a1.y as f64 - b1.y as f64) - s2_y * (a1.x as f64 - b1.x as f64)) / (-s2_x * s1_y + s1_x * s2_y);
+
+        if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&s)
+        {
+            let i_x = a1.x as f64 + (t * s1_x);
+            let i_y = a1.y as f64 + (t * s1_y);
+
+            return (i_x,i_y);
+        }
+
+        (-1.0,-1.0)
     }
+
 
 }
 
