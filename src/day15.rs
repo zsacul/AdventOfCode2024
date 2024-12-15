@@ -48,8 +48,6 @@ impl Data {
 
     fn print_hash(&self)
     {
-     //   let hash = self.get_hash();
-
         for y in 0..self.dy
         {
             for x in 0..self.dx
@@ -74,16 +72,6 @@ impl Data {
 
     fn count1(&mut self)->usize
     {
-      //  println!(
-      //      "dx:{} dy:{}",
-      //      self.dx,
-      //      self.dy
-      //  );
-      //  println!("pos: {:?}",self.pos);
-      //  self.print_hash();
-
-        
-
         for m in self.moves.chars()
         {
             let offset = Data::get_offset(m);
@@ -107,7 +95,6 @@ impl Data {
             while self.get(last_pos) == 'O'
             {
                 last_pos = last_pos.addv(offset);
-                //moves+=1;
             }
 
             if  self.get(last_pos) == '.'
@@ -122,13 +109,7 @@ impl Data {
                 self.hash.insert(new_pos,'@');
                 self.pos = new_pos;                            
             }
-
-            //self.print_hash();
-            //step+=1;
-            //println!("step: {}",step);
         }
-
-//        println!("moves: {}",self.moves);
 
         self.hash.iter()
                  .map(|(p,c)| if c==&'O' { p.x + p.y*100 } else { 0 })
@@ -141,12 +122,15 @@ impl Data {
 
         for (p,c) in self.hash.iter()
         {
+            let p1 = Vec2::new(p.x*2  ,p.y);
+            let p2 = Vec2::new(p.x*2+1,p.y);
+
             match c
             {
-                '#' => { hash.insert(Vec2::new(p.x*2,p.y),'#'); hash.insert(Vec2::new(p.x*2+1,p.y),'#'); },
-                '.' => { hash.insert(Vec2::new(p.x*2,p.y),'.'); hash.insert(Vec2::new(p.x*2+1,p.y),'.'); },
-                'O' => { hash.insert(Vec2::new(p.x*2,p.y),'['); hash.insert(Vec2::new(p.x*2+1,p.y),']'); },
-                '@' => { hash.insert(Vec2::new(p.x*2,p.y),'@'); hash.insert(Vec2::new(p.x*2+1,p.y),'.'); },
+                '#' => { hash.insert(p1,'#'); hash.insert(p2,'#'); },
+                '.' => { hash.insert(p1,'.'); hash.insert(p2,'.'); },
+                'O' => { hash.insert(p1,'['); hash.insert(p2,']'); },
+                '@' => { hash.insert(p1,'@'); hash.insert(p2,'.'); },
                 _   => panic!("transform")
                 
             }
@@ -164,10 +148,10 @@ impl Data {
     {
         match dir
         {
-            '^' => self.get(p.addv(Vec2::new(0,-1))) == '.' && self.get(p.addv(Vec2::new(1,-1))) == '.',
-            'v' => self.get(p.addv(Vec2::new(0, 1))) == '.' && self.get(p.addv(Vec2::new(1, 1))) == '.',
-            '<' => self.get(p.addv(Vec2::new(-1,0))) == '.',
-            '>' => self.get(p.addv(Vec2::new(2,0))) == '.',
+            '^' => self.get(p.add( 0,-1)) == '.' && self.get(p.add(1,-1)) == '.',
+            'v' => self.get(p.add( 0, 1)) == '.' && self.get(p.add(1, 1)) == '.',
+            '<' => self.get(p.add(-1, 0)) == '.',
+            '>' => self.get(p.add( 2, 0)) == '.',
             _   => false
             
         }
@@ -178,29 +162,29 @@ impl Data {
             match dir
             {
                 '^' => {
-                    self.set(p.addv(Vec2::new(0,-1)),'['); 
-                    self.set(p.addv(Vec2::new(1,-1)),']');
-                    self.set(p.addv(Vec2::new(0, 0)),'.'); 
-                    self.set(p.addv(Vec2::new(1, 0)),'.');
+                    self.set(p.add(0,-1),'['); 
+                    self.set(p.add(1,-1),']');
+                    self.set(p.add(0, 0),'.'); 
+                    self.set(p.add(1, 0),'.');
                 },
                 'v' =>
                 {
-                    self.set(p.addv(Vec2::new(0, 1)),'['); 
-                    self.set(p.addv(Vec2::new(1, 1)),']');
-                    self.set(p.addv(Vec2::new(0, 0)),'.'); 
-                    self.set(p.addv(Vec2::new(1, 0)),'.');
+                    self.set(p.add(0, 1),'['); 
+                    self.set(p.add(1, 1),']');
+                    self.set(p.add(0, 0),'.'); 
+                    self.set(p.add(1, 0),'.');
                 },
                 '<' => 
                 {
-                    self.set(p.addv(Vec2::new(-1, 0)),'['); 
-                    self.set(p.addv(Vec2::new( 0, 0)),']');
-                    self.set(p.addv(Vec2::new( 1, 0)),'.');                 
+                    self.set(p.add(-1, 0),'['); 
+                    self.set(p.add( 0, 0),']');
+                    self.set(p.add( 1, 0),'.');                 
                 },
                 '>' => 
                 {
-                    self.set(p.addv(Vec2::new( 2, 0)),']'); 
-                    self.set(p.addv(Vec2::new( 1, 0)),'[');
-                    self.set(p.addv(Vec2::new( 0, 0)),'.');                 
+                    self.set(p.add( 2, 0),']'); 
+                    self.set(p.add( 1, 0),'[');
+                    self.set(p.add( 0, 0),'.');                 
                 },                       
                 _   => panic!("move_do")
             }
@@ -212,19 +196,8 @@ impl Data {
     {       
         if moved.iter().all(|f|self.move_ok(*f,dir)) && !moved.is_empty()
         {
-  //        for m in moved.iter()
-  //        {
-  //            self.move_do(m, dir);
-  //        }
             return (true,moved.clone());
         }
-
-        if moved.is_empty()
-        {
-            return (false,moved.clone());
-        }
-
-        
 
         let mut new_moved = vec![]; 
         
@@ -234,12 +207,7 @@ impl Data {
             let npr = np.addv(Vec2::new( 1,0));
             let npl = np.addv(Vec2::new(-1,0));
 
-
-            if self.get(np) == '#'
-            {
-                return (false,new_moved.clone());
-            }
-            if self.get(npr) == '#'
+            if self.get(np) == '#' || self.get(npr) == '#'
             {
                 return (false,new_moved.clone());
             }
@@ -258,7 +226,8 @@ impl Data {
                     new_moved.push(npl);
                 }
             }
-            else {
+            else 
+            {
                 if self.get(np) == '[' 
                 {
                     new_moved.push(np);
@@ -297,19 +266,8 @@ impl Data {
 
             return (true,res_moved);
         }
-        //if hor
-        //{
-        //    last_pos = last_pos.addv(offset);
-        //    last_pos = last_pos.addv(offset);
-        //}
-        //    else
-        //{
-        //    last_pos = last_pos.addv(offset);
-        //}                   
-//
-        //last_pos = last_pos.addv(offset);
-        (false,moved.clone())
 
+        (false,moved.clone())
     }
     
 
@@ -325,9 +283,6 @@ impl Data {
 
         for m in mm.chars()
         {
-            //println!("step: {}",step);
-            //self.print_hash();
-
             let offset = Data::get_offset(m);
             let new_pos = self.pos.addv(offset);
             let new_pos_char = self.get(new_pos);            
@@ -344,8 +299,6 @@ impl Data {
             {             
                 move_ok = true;
             }
-
-            //let mut moved = vec![];
 
             if self.is_box(last_pos)
             {                
@@ -365,12 +318,6 @@ impl Data {
                     }
                 }
             }
-
-            //if self.get(last_pos) == '.'
-            //{
-            //    self.hash.insert(last_pos,'O');
-            //    move_ok = true;
-            //}
             
             if move_ok
             {
@@ -381,12 +328,6 @@ impl Data {
 
             step+=1;
         }
-
-        println!("step: {}",step);
-        self.print_hash();
-
-
-//        println!("moves: {}",self.moves);
 
         self.hash.iter()
                  .map(|(p,c)| if c==&'[' { p.x + p.y*100 } else { 0 })
