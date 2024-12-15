@@ -45,50 +45,31 @@ impl Data {
         }
     }
 
-    fn get_hash(&self)->HashMap<Vec2,char>
-    {
-        self.hash.clone()
-        //let mut hash: HashMap<Vec2,usize> = HashMap::new();
-        
-        //for r in self.hash.iter()
-        //{         
-          //  *hash.entry(r.p).or_insert(0) += 1;
-        //}        
-        
-        
-    }
 
     fn print_hash(&self)
     {
-        let hash = self.get_hash();
+     //   let hash = self.get_hash();
 
         for y in 0..self.dy
         {
             for x in 0..self.dx
             {        
                 let p = Vec2::new(x as i64,y as i64);                        
-                print!("{}", *hash.get(&p).unwrap_or(&'.'));
+                print!("{}", *self.hash.get(&p).unwrap_or(&'.'));
             }
             println!();
         }
         println!();
     }
 
-
-    fn ok1(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
-    {
-        0
-    }
-
-    fn ok2(&self,a:Vec2,b:Vec2,p:Vec2) -> usize
-    {               
-        0
-    }
-
-
     fn get(&self,p:Vec2)->char
     {
         *self.hash.get(&p).unwrap_or(&'#')
+    }
+
+    fn set(&mut self,p:Vec2,c:char)
+    {
+        self.hash.insert(p,c);
     }
 
     fn count1(&mut self)->usize
@@ -101,7 +82,7 @@ impl Data {
       //  println!("pos: {:?}",self.pos);
       //  self.print_hash();
 
-        let mut step=0;
+        
 
         for m in self.moves.chars()
         {
@@ -114,7 +95,7 @@ impl Data {
                 continue;
             }
 
-            let mut moves = 0;
+            
             let mut last_pos= new_pos;
             let mut move_ok = false;
 
@@ -126,7 +107,7 @@ impl Data {
             while self.get(last_pos) == 'O'
             {
                 last_pos = last_pos.addv(offset);
-                moves+=1;
+                //moves+=1;
             }
 
             if  self.get(last_pos) == '.'
@@ -143,23 +124,278 @@ impl Data {
             }
 
             //self.print_hash();
-            step+=1;
+            //step+=1;
             //println!("step: {}",step);
         }
 
 //        println!("moves: {}",self.moves);
 
-        self.get_hash().iter()
+        self.hash.iter()
                  .map(|(p,c)| if c==&'O' { p.x + p.y*100 } else { 0 })
                  .sum::<i64>() as usize
     }
 
-    fn count2(&self)->usize
+    fn transform(&self)->HashMap<Vec2,char>
     {
-        0
+        let mut hash = HashMap::new();
+
+        for (p,c) in self.hash.iter()
+        {
+            match c
+            {
+                '#' => { hash.insert(Vec2::new(p.x*2,p.y),'#'); hash.insert(Vec2::new(p.x*2+1,p.y),'#'); },
+                '.' => { hash.insert(Vec2::new(p.x*2,p.y),'.'); hash.insert(Vec2::new(p.x*2+1,p.y),'.'); },
+                'O' => { hash.insert(Vec2::new(p.x*2,p.y),'['); hash.insert(Vec2::new(p.x*2+1,p.y),']'); },
+                '@' => { hash.insert(Vec2::new(p.x*2,p.y),'@'); hash.insert(Vec2::new(p.x*2+1,p.y),'.'); },
+                _   => panic!("transform")
+                
+            }
+        }
+        
+        hash        
+    }
+
+    fn is_box(&self,p:Vec2)->bool
+    {
+        self.get(p) == '[' || self.get(p) == ']'
+    }
+
+    fn move_ok(&self,p:Vec2,dir:char)->bool
+    {
+        match dir
+        {
+            '^' => self.get(p.addv(Vec2::new(0,-1))) == '.' && self.get(p.addv(Vec2::new(1,-1))) == '.',
+            'v' => self.get(p.addv(Vec2::new(0, 1))) == '.' && self.get(p.addv(Vec2::new(1, 1))) == '.',
+            '<' => self.get(p.addv(Vec2::new(-1,0))) == '.',
+            '>' => self.get(p.addv(Vec2::new(2,0))) == '.',
+            _   => false
+            
+        }
+    }
+
+    fn move_do(&mut self,p:Vec2,dir:char)
+    {
+            match dir
+            {
+                '^' => {
+                    self.set(p.addv(Vec2::new(0,-1)),'['); 
+                    self.set(p.addv(Vec2::new(1,-1)),']');
+                    self.set(p.addv(Vec2::new(0, 0)),'.'); 
+                    self.set(p.addv(Vec2::new(1, 0)),'.');
+                },
+                'v' =>
+                {
+                    self.set(p.addv(Vec2::new(0, 1)),'['); 
+                    self.set(p.addv(Vec2::new(1, 1)),']');
+                    self.set(p.addv(Vec2::new(0, 0)),'.'); 
+                    self.set(p.addv(Vec2::new(1, 0)),'.');
+                },
+                '<' => 
+                {
+                    self.set(p.addv(Vec2::new(-1, 0)),'['); 
+                    self.set(p.addv(Vec2::new( 0, 0)),']');
+                    self.set(p.addv(Vec2::new( 1, 0)),'.');                 
+                },
+                '>' => 
+                {
+                    self.set(p.addv(Vec2::new( 2, 0)),']'); 
+                    self.set(p.addv(Vec2::new( 1, 0)),'[');
+                    self.set(p.addv(Vec2::new( 0, 0)),'.');                 
+                },                       
+                _   => panic!("move_do")
+            }
+            
+    }
+    
+
+    fn push(&mut self,moved:&Vec<Vec2>,dir:char,offs:Vec2)->(bool,Vec<Vec2>)
+    {       
+        if moved.iter().all(|f|self.move_ok(*f,dir)) && !moved.is_empty()
+        {
+  //        for m in moved.iter()
+  //        {
+  //            self.move_do(m, dir);
+  //        }
+            return (true,moved.clone());
+        }
+
+        if moved.is_empty()
+        {
+            return (false,moved.clone());
+        }
+
+        
+
+        let mut new_moved = vec![]; 
+        
+        for m in moved.iter()
+        {
+            let np =  m.addv(offs);
+            let npr = np.addv(Vec2::new( 1,0));
+            let npl = np.addv(Vec2::new(-1,0));
+
+
+            if self.get(np) == '#'
+            {
+                return (false,new_moved.clone());
+            }
+            if self.get(npr) == '#'
+            {
+                return (false,new_moved.clone());
+            }
+
+            if dir=='>'
+            {
+                if self.get(npr) == '['
+                {
+                    new_moved.push(npr);
+                }
+            }
+            else if dir=='<'
+            {
+                if self.get(np) == ']'
+                {
+                    new_moved.push(npl);
+                }
+            }
+            else {
+                if self.get(np) == '[' 
+                {
+                    new_moved.push(np);
+                }
+                if self.get(np) == ']'
+                {                    
+                    new_moved.push(npl);
+                }
+                if self.get(npr) == '[' 
+                {
+                    new_moved.push(npr);
+                }
+                if self.get(npr) == ']'
+                {                    
+                    new_moved.push(np);
+                }
+
+            }
+        }
+        new_moved.sort();
+        new_moved.dedup();
+
+        let np = self.push( &new_moved, dir, offs);
+
+        if np.0
+        {
+            let mut res_moved = vec![];
+            for m in np.1.iter()
+            {
+                res_moved.push(*m);
+            }
+            for m in moved.iter()
+            {
+                res_moved.push(*m);
+            }
+
+            return (true,res_moved);
+        }
+        //if hor
+        //{
+        //    last_pos = last_pos.addv(offset);
+        //    last_pos = last_pos.addv(offset);
+        //}
+        //    else
+        //{
+        //    last_pos = last_pos.addv(offset);
+        //}                   
+//
+        //last_pos = last_pos.addv(offset);
+        (false,moved.clone())
+
+    }
+    
+
+    fn count2(&mut self)->usize
+    {
+        self.hash = self.transform();
+        self.pos = self.pos.mulv(Vec2::new(2,1));
+        self.dx*=2;
+ 
+        let mut step=0;
+
+        let mm = self.moves.clone();
+
+        for m in mm.chars()
+        {
+            //println!("step: {}",step);
+            //self.print_hash();
+
+            let offset = Data::get_offset(m);
+            let new_pos = self.pos.addv(offset);
+            let new_pos_char = self.get(new_pos);            
+
+            if new_pos_char == '#'
+            {
+                continue;
+            }
+
+            let mut last_pos = new_pos;
+            let mut move_ok = false;
+
+            if  self.get(last_pos) == '.'
+            {             
+                move_ok = true;
+            }
+
+            //let mut moved = vec![];
+
+            if self.is_box(last_pos)
+            {                
+                if self.get(last_pos)==']'
+                {
+                    last_pos = last_pos.addv(Vec2::new(-1,0));
+                }
+                let mm = vec![last_pos];
+                let r = self.push(&mm,m,offset);
+
+                if r.0
+                {
+                    for b in r.1.iter()
+                    {
+                        self.move_do(*b, m);
+                        move_ok = true;
+                    }
+                }
+            }
+
+            //if self.get(last_pos) == '.'
+            //{
+            //    self.hash.insert(last_pos,'O');
+            //    move_ok = true;
+            //}
+            
+            if move_ok
+            {
+                self.hash.insert(self.pos,'.');
+                self.hash.insert(new_pos,'@');
+                self.pos = new_pos;                            
+            }
+
+            step+=1;
+        }
+
+        println!("step: {}",step);
+        self.print_hash();
+
+
+//        println!("moves: {}",self.moves);
+
+        self.hash.iter()
+                 .map(|(p,c)| if c==&'[' { p.x + p.y*100 } else { 0 })
+                 .sum::<i64>() as usize
     }
 
 }
+
+
 
 pub fn part1(data:&[String])->usize
 {
@@ -194,5 +430,105 @@ fn test1()
         "".to_string(),
         "<^^>>>vv<v>>v<<".to_string(),
     ];
+    assert_eq!(part1(&v),2028);
+}
+
+
+
+#[test]
+fn test0()
+{
+    let v = vec![
+        "##########".to_string(),
+        "#..O..O.O#".to_string(),
+        "#......O.#".to_string(),
+        "#.OO..O.O#".to_string(),
+        "#..O@..O.#".to_string(),
+        "#O#..O...#".to_string(),
+        "#O..O..O.#".to_string(),
+        "#.OO.O.OO#".to_string(),
+        "#....O...#".to_string(),
+        "##########".to_string(),
+        "".to_string(),
+        "<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^".to_string(),
+        "vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v".to_string(),
+        "><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<".to_string(),
+        "<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^".to_string(),
+        "^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><".to_string(),
+        "^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^".to_string(),
+        ">^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^".to_string(),
+        "<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>".to_string(),
+        "^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>".to_string(),
+        "v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^".to_string(),
+    ];
     assert_eq!(part1(&v),10092);
 }
+
+
+#[test]
+fn test2()
+{
+    let v = vec![
+        "#######".to_string(),
+        "#...#.#".to_string(),
+        "#.....#".to_string(),
+        "#..OO@#".to_string(),
+        "#..O..#".to_string(),
+        "#.....#".to_string(),
+        "#######".to_string(),
+        "".to_string(),
+        "<vv<<^^<<^^".to_string(),
+    ];
+    assert_eq!(part2(&v),618);
+}
+
+
+#[test]
+fn test3()
+{
+    let v = vec![
+        "##########".to_string(),
+        "#..O..O.O#".to_string(),
+        "#......O.#".to_string(),
+        "#.OO..O.O#".to_string(),
+        "#..O@..O.#".to_string(),
+        "#O#..O...#".to_string(),
+        "#O..O..O.#".to_string(),
+        "#.OO.O.OO#".to_string(),
+        "#....O...#".to_string(),
+        "##########".to_string(),
+        "".to_string(),
+        "<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^".to_string(),
+        "vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v".to_string(),
+        "><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<".to_string(),
+        "<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^".to_string(),
+        "^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><".to_string(),
+        "^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^".to_string(),
+        ">^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^".to_string(),
+        "<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>".to_string(),
+        "^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>".to_string(),
+        "v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^".to_string(),
+    ];
+    assert_eq!(part2(&v),9021);
+}
+
+
+
+#[test]
+fn test4()
+{
+    let v = vec![
+        "##########".to_string(),
+        "#......O.#".to_string(),
+        "#...OO..O#".to_string(),
+        "#.@.OO.O.#".to_string(),
+        "#O#.OO...#".to_string(),
+        "#O..O..O.#".to_string(),
+        "##########".to_string(),
+        "".to_string(),
+        ">>>>>>>>".to_string(),
+    ];
+    assert_eq!(part2(&v),4434);
+}
+
+

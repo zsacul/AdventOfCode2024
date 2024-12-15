@@ -157,6 +157,16 @@ impl Vec2 {
     }
 
     #[allow(unused)]
+    pub fn mulv(&self,p:Vec2)->Vec2
+    {
+        Vec2
+        {
+            x : self.x * p.x,
+            y : self.y * p.y
+        }
+    }
+
+    #[allow(unused)]
     pub fn sub(&self,x:i64,y:i64)->Vec2
     {
         Vec2
