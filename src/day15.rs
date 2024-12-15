@@ -5,11 +5,11 @@ use super::tools;
 
 #[derive(Debug)]
 struct Data {
-      hash: HashMap<Vec2,char>,   
-      moves: String,
-      dx:usize,
-      dy:usize,
-      pos:Vec2,
+      hash  : HashMap<Vec2,char>,   
+      moves : String,
+      dx    : usize,
+      dy    : usize,
+      pos   : Vec2,
 }
 
 impl Data {
@@ -20,9 +20,9 @@ impl Data {
         let moves = sections[1].join("");
 
         let pos : Vec2 = *hash.clone()
-                        .iter()
-                        .find(|c|c.1==&'@')
-                        .unwrap().0;
+                              .iter()
+                              .find(|c|c.1==&'@')
+                              .unwrap().0;
         
         Data {
             hash,
@@ -37,15 +37,15 @@ impl Data {
     {
         match c
         {
-            '^' => Vec2::new(0,-1),
-            'v' => Vec2::new(0,1),
-            '<' => Vec2::new(-1,0),
-            '>' => Vec2::new(1,0),
-            _   => Vec2::new(0,0)
+            '^' => Vec2::new( 0,-1),
+            'v' => Vec2::new( 0, 1),
+            '<' => Vec2::new(-1, 0),
+            '>' => Vec2::new( 1, 0),
+            _   => panic!("get_offset")
         }
     }
 
-
+    #[allow(unused)]
     fn print_hash(&self)
     {
         for y in 0..self.dy
@@ -70,27 +70,22 @@ impl Data {
         self.hash.insert(p,c);
     }
 
+    fn sum_coordinates(&self,c:char)->usize
+    {
+        self.hash.iter()
+                  .filter(|(_,&ch)| ch==c)
+                  .map(|(pos,_)|  100*pos.y + pos.x)
+                  .sum::<i64>() as usize
+    }
+
     fn count1(&mut self)->usize
     {
         for m in self.moves.chars()
         {
             let offset = Data::get_offset(m);
             let new_pos = self.pos.addv(offset);
-            let new_pos_char = self.get(new_pos);
 
-            if new_pos_char == '#'
-            {
-                continue;
-            }
-
-            
             let mut last_pos= new_pos;
-            let mut move_ok = false;
-
-            if  self.get(last_pos) == '.'
-            {             
-                move_ok = true;
-            }
 
             while self.get(last_pos) == 'O'
             {
@@ -100,20 +95,14 @@ impl Data {
             if  self.get(last_pos) == '.'
             {
                 self.hash.insert(last_pos,'O');
-                move_ok = true;
-            }
-            
-            if move_ok
-            {
+                
                 self.hash.insert(self.pos,'.');
                 self.hash.insert(new_pos,'@');
                 self.pos = new_pos;                            
             }
         }
 
-        self.hash.iter()
-                 .map(|(p,c)| if c==&'O' { p.x + p.y*100 } else { 0 })
-                 .sum::<i64>() as usize
+        self.sum_coordinates('O')
     }
 
     fn transform(&self)->HashMap<Vec2,char>
@@ -329,9 +318,7 @@ impl Data {
             step+=1;
         }
 
-        self.hash.iter()
-                 .map(|(p,c)| if c==&'[' { p.x + p.y*100 } else { 0 })
-                 .sum::<i64>() as usize
+        self.sum_coordinates('[')
     }
 
 }
