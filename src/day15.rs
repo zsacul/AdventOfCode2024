@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use super::vec2::Vec2;
 use super::tools;
 
@@ -24,7 +23,8 @@ impl Data {
                               .find(|c|c.1==&'@')
                               .unwrap().0;
         
-        Data {
+        Data 
+        {
             hash,
             moves,
             dx : sections[0][0].len(),
@@ -73,9 +73,9 @@ impl Data {
     fn sum_coordinates(&self,c:char)->usize
     {
         self.hash.iter()
-                  .filter(|(_,&ch)| ch==c)
-                  .map(|(pos,_)|  100*pos.y + pos.x)
-                  .sum::<i64>() as usize
+                 .filter(|(_,&ch)| ch==c)
+                 .map(|(pos,_)|  100*pos.y + pos.x)
+                 .sum::<i64>() as usize
     }
 
     fn count1(&mut self)->usize
@@ -137,154 +137,112 @@ impl Data {
     {
         match dir
         {
-            '^' => self.get(p.add( 0,-1)) == '.' && self.get(p.add(1,-1)) == '.',
-            'v' => self.get(p.add( 0, 1)) == '.' && self.get(p.add(1, 1)) == '.',
-            '<' => self.get(p.add(-1, 0)) == '.',
-            '>' => self.get(p.add( 2, 0)) == '.',
+            '^' => self.get(p.u()    ) == '.' && self.get(p.r().u()) == '.',
+            'v' => self.get(p.d()    ) == '.' && self.get(p.r().d()) == '.',
+            '<' => self.get(p.l()    ) == '.',
+            '>' => self.get(p.r().r()) == '.',
             _   => false
             
         }
     }
 
-    fn move_do(&mut self,p:Vec2,dir:char)
+    fn do_movement(&mut self,p:Vec2,dir:char)
     {
-            match dir
+        match dir
+        {
+            '^' => {
+                self.set(p.u()    ,'['); 
+                self.set(p.u().r(),']');
+                self.set(p        ,'.'); 
+                self.set(p.r()    ,'.');
+            },
+            'v' =>
             {
-                '^' => {
-                    self.set(p.add(0,-1),'['); 
-                    self.set(p.add(1,-1),']');
-                    self.set(p.add(0, 0),'.'); 
-                    self.set(p.add(1, 0),'.');
-                },
-                'v' =>
-                {
-                    self.set(p.add(0, 1),'['); 
-                    self.set(p.add(1, 1),']');
-                    self.set(p.add(0, 0),'.'); 
-                    self.set(p.add(1, 0),'.');
-                },
-                '<' => 
-                {
-                    self.set(p.add(-1, 0),'['); 
-                    self.set(p.add( 0, 0),']');
-                    self.set(p.add( 1, 0),'.');                 
-                },
-                '>' => 
-                {
-                    self.set(p.add( 2, 0),']'); 
-                    self.set(p.add( 1, 0),'[');
-                    self.set(p.add( 0, 0),'.');                 
-                },                       
-                _   => panic!("move_do")
-            }
+                self.set(p.d()    ,'['); 
+                self.set(p.r().d(),']');
+                self.set(   p     ,'.'); 
+                self.set(p.r()    ,'.');
+            },
+            '<' => 
+            {
+                self.set(p.l()    ,'['); 
+                self.set(p        ,']');
+                self.set(p.r()    ,'.');                 
+            },
+            '>' => 
+            {
+                self.set(p.r().r(),']'); 
+                self.set(p.r()    ,'[');
+                self.set(p        ,'.');                 
+            },                       
+            _   => panic!("do_movement")
+        }
             
     }
     
 
-    fn push(&mut self,moved:&Vec<Vec2>,dir:char,offs:Vec2)->(bool,Vec<Vec2>)
+    fn push(&mut self,moved:&[Vec2],dir:char,offs:Vec2)->(bool,Vec<Vec2>)
     {       
         if moved.iter().all(|f|self.move_ok(*f,dir)) && !moved.is_empty()
         {
-            return (true,moved.clone());
+            return (true,moved.to_vec());
         }
 
         let mut new_moved = vec![]; 
         
         for m in moved.iter()
         {
-            let np =  m.addv(offs);
-            let npr = np.addv(Vec2::new( 1,0));
-            let npl = np.addv(Vec2::new(-1,0));
+            let np  =  m.addv(offs);
+            let npr = np.r();
+            let npl = np.l();
 
-            if self.get(np) == '#' || self.get(npr) == '#'
-            {
-                return (false,new_moved.clone());
-            }
+            if self.get(np) == '#' || self.get(npr) == '#'      { return (false,new_moved.to_vec()); }
 
             if dir=='>'
             {
-                if self.get(npr) == '['
-                {
-                    new_moved.push(npr);
-                }
+                if self.get(npr) == '['                         { new_moved.push(npr); }
             }
             else if dir=='<'
             {
-                if self.get(np) == ']'
-                {
-                    new_moved.push(npl);
-                }
+                if self.get(np) == ']'                          { new_moved.push(npl); }
             }
             else 
             {
-                if self.get(np) == '[' 
-                {
-                    new_moved.push(np);
-                }
-                if self.get(np) == ']'
-                {                    
-                    new_moved.push(npl);
-                }
-                if self.get(npr) == '[' 
-                {
-                    new_moved.push(npr);
-                }
-                if self.get(npr) == ']'
-                {                    
-                    new_moved.push(np);
-                }
-
+                if self.get(np ) == '[' || self.get(npr) == ']' { new_moved.push(np);  }
+                if self.get(np ) == ']'                         { new_moved.push(npl); }
+                if self.get(npr) == '['                         { new_moved.push(npr); }
             }
         }
+
         new_moved.sort();
         new_moved.dedup();
 
-        let np = self.push( &new_moved, dir, offs);
-
-        if np.0
-        {
-            let mut res_moved = vec![];
-            for m in np.1.iter()
-            {
-                res_moved.push(*m);
-            }
-            for m in moved.iter()
-            {
-                res_moved.push(*m);
-            }
-
-            return (true,res_moved);
-        }
-
-        (false,moved.clone())
-    }
-    
+        let (ok, moves)= self.push( &new_moved, dir, offs);
+        (ok,[moves,moved.to_vec()].concat())
+    }  
 
     fn count2(&mut self)->usize
     {
         self.hash = self.transform();
-        self.pos = self.pos.mulv(Vec2::new(2,1));
-        self.dx*=2;
+        self.pos  = self.pos.mulv(Vec2::new(2,1));
+        self.dx  *= 2;
  
-        let mut step=0;
+        let moves = self.moves.clone();
 
-        let mm = self.moves.clone();
-
-        for m in mm.chars()
+        for m in moves.chars()
         {
-            let offset = Data::get_offset(m);
-            let new_pos = self.pos.addv(offset);
-            let new_pos_char = self.get(new_pos);            
+            let offset  = Data::get_offset(m);
+            let new_pos = self.pos.addv(offset);           
 
-            if new_pos_char == '#'
+            if self.get(new_pos)=='#'
             {
                 continue;
             }
 
             let mut last_pos = new_pos;
-            let mut move_ok = false;
+            let mut move_ok  = false;
 
-            if  self.get(last_pos) == '.'
+            if  self.get(last_pos)=='.'
             {             
                 move_ok = true;
             }
@@ -295,14 +253,14 @@ impl Data {
                 {
                     last_pos = last_pos.addv(Vec2::new(-1,0));
                 }
-                let mm = vec![last_pos];
-                let r = self.push(&mm,m,offset);
 
-                if r.0
+                let (ok,moves) = self.push(&vec![last_pos],m,offset);
+
+                if ok
                 {
-                    for b in r.1.iter()
+                    for b in moves.iter()
                     {
-                        self.move_do(*b, m);
+                        self.do_movement(*b, m);
                         move_ok = true;
                     }
                 }
@@ -311,11 +269,9 @@ impl Data {
             if move_ok
             {
                 self.hash.insert(self.pos,'.');
-                self.hash.insert(new_pos,'@');
+                self.hash.insert(new_pos ,'@');
                 self.pos = new_pos;                            
             }
-
-            step+=1;
         }
 
         self.sum_coordinates('[')
