@@ -143,6 +143,15 @@ pub fn get_hash_table(data:&[String])->HashMap<Vec2,char>
 }
 
 #[allow(unused)]
+pub fn find_in_hash(hash:&HashMap<Vec2,char>,ch:char)->Vec2
+{
+    *hash
+    .iter()
+    .find(|c| *c.1==ch)
+    .unwrap().0
+}
+
+#[allow(unused)]
 pub fn print_hash_set(data:&HashSet<Vec2>,dx:usize,dy:usize)
 {
     //let mut hash = HashMap::new();

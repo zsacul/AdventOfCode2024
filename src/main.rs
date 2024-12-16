@@ -167,15 +167,8 @@ fn main() {
     
     {
         let _timer = Timer::new();
-          let child = thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(move || { 
-            let _timer = Timer::new();
-            let day16_data  = tools::read_1d_string("data/day16.txt");
-            day16::solve(&day16_data);       
-        }).unwrap(); 
-        child.join().unwrap();
-
-        //let day16_data  = tools::read_1d_string("data/day16.txt");
-        //day16::solve(&day16_data); 
+        let day16_data  = tools::read_1d_string("data/day16.txt");
+        day16::solve(&day16_data);
     }
     /*                    
     {
