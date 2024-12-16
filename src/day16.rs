@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::usize;
 use super::vec2::Vec2;
 use super::tools;
@@ -8,8 +8,6 @@ struct Data {
       hash  : HashMap<Vec2,char>,   
       dx    : usize,
       dy    : usize,
-      pos   : Vec2,
-      dir   : char,
       s     : Vec2,
       e     : Vec2,
 }
@@ -34,8 +32,6 @@ impl Data {
             hash,
             dx : input[0].len(),
             dy : input.len(),
-            pos:s,
-            dir : '>',
             s,
             e
         }
@@ -52,6 +48,12 @@ impl Data {
             _   => panic!("get_offset")
         }
     }
+
+    fn get_offset_back(c:char)->Vec2
+    {
+        Data::get_offset(c).mulv(Vec2::new(-1,-1))
+    }
+
 
     fn left(c:char)->char
     {
@@ -115,7 +117,7 @@ impl Data {
             return cost;
         }
 
-        if self.get(p) != '.' && self.get(p) != 'S'
+        if self.get(p) != '.' && p != self.s
         {
             memo.insert((p,dir),9999999999999999999);
             return 9999999999999999999;
@@ -165,7 +167,7 @@ impl Data {
                 continue;
             }
 
-            if self.get(p) == 'E'
+            if p == self.e
             {
                 if cost<best
                 {
@@ -175,7 +177,7 @@ impl Data {
                 //return cost;
             }
 
-            if self.get(p) != '.' && self.get(p) != 'S'
+            if self.get(p) != '.' && p != self.s
             {
                 continue;
             }
@@ -183,24 +185,129 @@ impl Data {
             let dl =        Data::left(df);
             let dr =        Data::right(df);
             let pf = p.addv(Data::get_offset(df));
-            let pl = p.addv(Data::get_offset(dl));
-            let pr = p.addv(Data::get_offset(dr));
+            //let pl = p.addv(Data::get_offset(dl));
+            //let pr = p.addv(Data::get_offset(dr));
 
             if cost+1<*visited.get(&(pf,df)).unwrap_or(&9999999999999999999)
             {                    
                 q.push((pf,df,cost+1));
             }
-            if cost+1001<*visited.get(&(pl,dl)).unwrap_or(&9999999999999999999)
+            if cost+1000<*visited.get(&(p,dl)).unwrap_or(&9999999999999999999)
             {
-                q.push((pl,dl,cost+1001));
+                q.push((p,dl,cost+1000));
             }            
-            if cost+1001<*visited.get(&(pr,dr)).unwrap_or(&9999999999999999999)
+            if cost+1000<*visited.get(&(p,dr)).unwrap_or(&9999999999999999999)
             {
-                q.push((pr,dr,cost+1001));
+                q.push((p,dr,cost+1000));
             }            
         }
         best
     }
+
+    //19326
+    //551
+
+    fn bfs2(&mut self,dir:char,best:usize)->usize
+    {
+        let mut q = Vec::new();
+        q.push((self.s,dir,0));
+        let mut visited = HashMap::new();
+       
+        let mut best = best;
+        let mut res = usize::MAX;
+
+        while !q.is_empty()
+        {
+            let (p,df,cost) = q.remove(0);
+
+            let cc = *visited.get(&(p,df)).unwrap_or(&9999999999999999999);
+            
+            if cost>cc || cost>best
+            {
+                continue;
+            }
+            visited.insert((p,df),cost);
+
+            if p == self.e
+            {
+                if cost==best
+                {
+                    let mut ok = HashSet::new();
+                    best = cost;
+
+                     q.push((self.e,dir,0));
+                    ok.insert(self.e);
+
+                    while !q.is_empty()
+                    {
+                        let (p,d,cost) = q.remove(0);
+
+                        let dl = Data::right(d);
+                        let dr = Data::left(d);
+
+                        let pb = p.addv(Data::get_offset_back(d));
+
+                        let cf = *visited.get(&(pb,d )).unwrap_or(&9999999999999999999);
+                        let cl = *visited.get(&(p ,dl)).unwrap_or(&9999999999999999999);
+                        let cr = *visited.get(&(p ,dr)).unwrap_or(&9999999999999999999);
+
+                        if cost==cf+1 && (self.get(pb)=='.' || self.get(pb)=='S')
+                        {
+                             q.push((pb,d,cf));
+                            ok.insert(pb);
+                        }
+                        if cost==cl+1000
+                        {
+                             q.push((p,dl,cl));
+                            ok.insert(p);
+                        }
+                        if cost==cr+1000
+                        {
+                             q.push((p,dr,cr));
+                            ok.insert(p);
+                        }
+                    }     
+                    
+                    return ok.len();
+                }
+            }
+            else
+            {
+                if self.get(p) != '.' && p != self.s
+                {
+                    continue;
+                }
+
+                let dl =        Data::left(df);
+                let dr =        Data::right(df);
+                let pf = p.addv(Data::get_offset(df));
+                //let pl = p.addv(Data::get_offset(dl));
+                //let pr = p.addv(Data::get_offset(dr));
+
+                if cost+1<*visited.get(&(pf,df)).unwrap_or(&9999999999999999999)
+                {                    
+                    q.push((pf,df,cost+1));
+                }
+                if cost+1000<*visited.get(&(p,dl)).unwrap_or(&9999999999999999999)
+                {
+                    q.push((p,dl,cost+1000));
+                }            
+                if cost+1000<*visited.get(&(p,dr)).unwrap_or(&9999999999999999999)
+                {
+                    q.push((p,dr,cost+1000));
+                }
+            }            
+        }
+        res/4-2
+        //res
+        
+    }
+
+    //4831 around
+    //< 4830
+    //< 4828
+    //not 4820
+
 
     fn count1(&mut self)->usize
     {
@@ -208,12 +315,26 @@ impl Data {
 
         //let mut mini = 87380;
         //self.dfs(&mut memo,&mut mini,self.s, '>',0)
-        self.bfs( '>')
+        self.bfs( '>')        
     }
 
     fn count2(&mut self)->usize
     {
-        0
+        let best = self.bfs( '>');
+        self.bfs2('>',best)
+        /* 
+        let ss = self.s;
+        let ee = self.e;
+
+        self.s = ss;
+        self.e = ee;
+        let b1 = self.bfs( '>');
+
+        self.s = ee;
+        self.e = ss;
+        let b2 = self.bfs( '>');
+        b2-b1
+        */
     }
 
 }
@@ -263,3 +384,80 @@ fn test1()
     assert_eq!(part1(&v),7036);
 }
 
+
+#[test]
+fn test2()
+{
+    let v = vec![
+        "#################".to_string(),
+        "#...#...#...#..E#".to_string(),
+        "#.#.#.#.#.#.#.#.#".to_string(),
+        "#.#.#.#...#...#.#".to_string(),
+        "#.#.#.#.###.#.#.#".to_string(),
+        "#...#.#.#.....#.#".to_string(),
+        "#.#.#.#.#.#####.#".to_string(),
+        "#.#...#.#.#.....#".to_string(),
+        "#.#.#####.#.###.#".to_string(),
+        "#.#.#.......#...#".to_string(),
+        "#.#.###.#####.###".to_string(),
+        "#.#.#...#.....#.#".to_string(),
+        "#.#.#.#####.###.#".to_string(),
+        "#.#.#.........#.#".to_string(),
+        "#.#.#.#########.#".to_string(),
+        "#S#.............#".to_string(),
+        "#################".to_string(),        
+    ];
+    assert_eq!(part1(&v),11048);
+}
+
+
+
+#[test]
+fn test3()
+{
+    let v = vec![
+        "###############".to_string(),
+        "#.......#....E#".to_string(),
+        "#.#.###.#.###.#".to_string(),
+        "#.....#.#...#.#".to_string(),
+        "#.###.#####.#.#".to_string(),
+        "#.#.#.......#.#".to_string(),
+        "#.#.#####.###.#".to_string(),
+        "#...........#.#".to_string(),
+        "###.#.#####.#.#".to_string(),
+        "#...#.....#.#.#".to_string(),
+        "#.#.#.###.#.#.#".to_string(),
+        "#.....#...#.#.#".to_string(),
+        "#.###.#.#.#.#.#".to_string(),
+        "#S..#.....#...#".to_string(),
+        "###############".to_string(),
+    ];
+    assert_eq!(part2(&v),45);
+}
+
+
+
+#[test]
+fn test4()
+{
+    let v = vec![
+        "#################".to_string(),
+        "#...#...#...#..E#".to_string(),
+        "#.#.#.#.#.#.#.#.#".to_string(),
+        "#.#.#.#...#...#.#".to_string(),
+        "#.#.#.#.###.#.#.#".to_string(),
+        "#...#.#.#.....#.#".to_string(),
+        "#.#.#.#.#.#####.#".to_string(),
+        "#.#...#.#.#.....#".to_string(),
+        "#.#.#####.#.###.#".to_string(),
+        "#.#.#.......#...#".to_string(),
+        "#.#.###.#####.###".to_string(),
+        "#.#.#...#.....#.#".to_string(),
+        "#.#.#.#####.###.#".to_string(),
+        "#.#.#.........#.#".to_string(),
+        "#.#.#.#########.#".to_string(),
+        "#S#.............#".to_string(),
+        "#################".to_string(),        
+    ];
+    assert_eq!(part2(&v),64);
+}
