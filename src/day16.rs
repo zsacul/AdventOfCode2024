@@ -80,14 +80,23 @@ impl Data {
     }
 
     #[allow(unused)]
-    fn print_hash(&self)
+    fn print_hash(&self,vis:HashSet<Vec2>)
     {
         for y in 0..self.dy
         {
             for x in 0..self.dx
             {        
                 let p = Vec2::new(x as i64,y as i64);                        
-                print!("{}", *self.hash.get(&p).unwrap_or(&'.'));
+                let c = *self.hash.get(&p).unwrap_or(&'.');
+               
+                if vis.contains(&p)
+                {
+                    print!("O");
+                }
+                    else 
+                {
+                    print!("{}", c);
+                }
             }
             println!();
         }
@@ -185,8 +194,6 @@ impl Data {
             let dl =        Data::left(df);
             let dr =        Data::right(df);
             let pf = p.addv(Data::get_offset(df));
-            //let pl = p.addv(Data::get_offset(dl));
-            //let pr = p.addv(Data::get_offset(dr));
 
             if cost+1<*visited.get(&(pf,df)).unwrap_or(&9999999999999999999)
             {                    
@@ -202,19 +209,16 @@ impl Data {
             }            
         }
         best
-    }
+    }    
 
-    //19326
-    //551
-
-    fn bfs2(&mut self,dir:char,best:usize)->usize
+    fn bfs2(&mut self,dir:char,bestv:usize)->usize
     {
+        let mut visited = HashMap::new();
         let mut q = Vec::new();
         q.push((self.s,dir,0));
-        let mut visited = HashMap::new();
        
-        let mut best = best;
-        let mut res = usize::MAX;
+        let mut ok = HashSet::new();
+        let mut end_dirs = vec![];
 
         while !q.is_empty()
         {
@@ -222,7 +226,7 @@ impl Data {
 
             let cc = *visited.get(&(p,df)).unwrap_or(&9999999999999999999);
             
-            if cost>cc || cost>best
+            if cost>cc || cost>bestv
             {
                 continue;
             }
@@ -230,45 +234,9 @@ impl Data {
 
             if p == self.e
             {
-                if cost==best
+                if cost<=bestv
                 {
-                    let mut ok = HashSet::new();
-                    best = cost;
-
-                     q.push((self.e,dir,0));
-                    ok.insert(self.e);
-
-                    while !q.is_empty()
-                    {
-                        let (p,d,cost) = q.remove(0);
-
-                        let dl = Data::right(d);
-                        let dr = Data::left(d);
-
-                        let pb = p.addv(Data::get_offset_back(d));
-
-                        let cf = *visited.get(&(pb,d )).unwrap_or(&9999999999999999999);
-                        let cl = *visited.get(&(p ,dl)).unwrap_or(&9999999999999999999);
-                        let cr = *visited.get(&(p ,dr)).unwrap_or(&9999999999999999999);
-
-                        if cost==cf+1 && (self.get(pb)=='.' || self.get(pb)=='S')
-                        {
-                             q.push((pb,d,cf));
-                            ok.insert(pb);
-                        }
-                        if cost==cl+1000
-                        {
-                             q.push((p,dl,cl));
-                            ok.insert(p);
-                        }
-                        if cost==cr+1000
-                        {
-                             q.push((p,dr,cr));
-                            ok.insert(p);
-                        }
-                    }     
-                    
-                    return ok.len();
+                    end_dirs.push(df);
                 }
             }
             else
@@ -297,10 +265,45 @@ impl Data {
                     q.push((p,dr,cost+1000));
                 }
             }            
-        }
-        res/4-2
-        //res
-        
+       }
+
+
+       for dir in end_dirs
+       {
+            q.push((self.e,dir,bestv));
+            ok.insert(self.e);
+
+            while !q.is_empty()
+            {
+                let (p,d,cost) = q.remove(0);
+
+                let dl = Data::right(d);
+                let dr = Data::left(d);
+
+                let pb = p.addv(Data::get_offset_back(d));
+
+                let cf = *visited.get(&(pb,d )).unwrap_or(&9999999999999999999);
+                let cl = *visited.get(&(p ,dl)).unwrap_or(&9999999999999999999);
+                let cr = *visited.get(&(p ,dr)).unwrap_or(&9999999999999999999);
+
+                if cost>=cf+1 && (self.get(pb)=='.' || self.get(pb)=='S')
+                {
+                    q.push((pb,d,cf));            ok.insert(pb);
+                }
+                if cost>=cl+1000
+                {
+                    q.push((p,dl,cl));            ok.insert(p);
+                }
+                if cost>=cr+1000
+                {
+                    q.push((p,dr,cr));            ok.insert(p);
+                }
+            }
+       }
+
+       Data::print_hash(&self, ok.clone());
+            
+        ok.len()
     }
 
     //4831 around
@@ -460,4 +463,20 @@ fn test4()
         "#################".to_string(),        
     ];
     assert_eq!(part2(&v),64);
+}
+
+#[test]
+fn test5()
+{
+    let v = vec![
+        "#####".to_string(),
+        "#..E#".to_string(),
+        "#.#.#".to_string(),
+        "#...#".to_string(),
+        "#.###".to_string(),
+        "#.#.#".to_string(),
+        "#S#.#".to_string(),
+        "#####".to_string(),
+    ];
+    assert_eq!(part2(&v),8);
 }
