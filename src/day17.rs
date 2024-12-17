@@ -17,9 +17,9 @@ enum Code
 
 #[derive(Debug,Clone)]
 struct Data {
-      reg_A: i64,  
-      reg_B: i64,  
-      reg_C: i64,  
+      reg_A: u64,  
+      reg_B: u64,  
+      reg_C: u64,  
       prog : Vec<Code>,
       i : usize,
       res : Vec<u8>,
@@ -34,7 +34,7 @@ impl Data {
         let reg_C = tools::i64_get_between(&sections[0][2],"Register C: ","");
         let prog  = tools::get_between(&sections[1][0],"Program: ","");
 
-        let num = prog.split(",").map(|n| n.parse().unwrap()).collect::<Vec<i64>>();
+        let num = prog.split(",").map(|n| n.parse().unwrap()).collect::<Vec<u64>>();
 
 
         let mut program = vec![];
@@ -60,16 +60,16 @@ impl Data {
     //).collect();      
         
         Data {
-            reg_A,
-            reg_B,
-            reg_C,
+            reg_A : reg_A as u64,
+            reg_B : reg_B as u64,
+            reg_C : reg_C as u64,
             prog: program,
             i:0,
             res: vec![]
         }
     }
 
-    fn combo(&self,n:u8)->i64
+    fn combo(&self,n:u8)->u64
     {
         match n
         {
@@ -94,16 +94,20 @@ impl Data {
         {
             Code::Adv(n) => {
                 {
-                    let m = self.combo(n);
-                    let a = self.reg_A;// as f64;
-                    let b = 2i64.pow(m as u32);// 1<<m;//if m==0 {1} else {2<<m};
-                    self.reg_A = ((a as f64)/(b as f64)) as i64;
+                    println!("bef Adv {} {}",self.reg_A,n);
+                    if self.reg_A!=0 {
+                        
+                        let m = self.combo(n);
+                        let a = self.reg_A; // as f64;
+                        let b = 2u64.pow(m as u32); // 1<<m;//if m==0 {1} else {2<<m};
+                        self.reg_A = ((a as f64)/(b as f64)) as u64;
+                    }
+                    println!("Adv {} {}",self.reg_A,n);
                 }
             },
             Code::Bxl(n) => {
                 {
-                    
-                    self.reg_B ^= n as i64;
+                    self.reg_B ^= n as u64;
                 }
             },
             Code::Bst(n) => {                    
@@ -119,13 +123,11 @@ impl Data {
                 }
             },
             Code::Bxc(n) => {
-                //if n == 0
                 {
                     self.reg_B = self.reg_B^self.reg_C;
                 }
             },
             Code::Out(n) => {
-                //if n == 0
                 {
                     println!("{:?} {}",self.combo(n),n);
 
@@ -261,14 +263,15 @@ fn test4()
         "".to_string(),
         "Program: 0,1,5,4,3,0".to_string(),
     ];
+    println!("tesd1");
     assert_eq!(part1(&v),"4,2,5,6,7,7,7,7,3,1,0");
     
+    println!("tesd2");
     let mut d = Data::new(&v);
-    d.run();
+    let c = d.count1();
+    //d.run();
     assert_eq!(d.reg_A,0);
-
 }
-
 
 #[test]
 fn test5()
@@ -286,7 +289,6 @@ fn test5()
     assert_eq!(d.reg_B,26);   
 }
 
-
 #[test]
 fn test6()
 {
@@ -299,6 +301,7 @@ fn test6()
     ];
 
     let mut d = Data::new(&v);
+    //let c = d.count1();
     d.run();
     assert_eq!(d.reg_B,44354);   
 }
