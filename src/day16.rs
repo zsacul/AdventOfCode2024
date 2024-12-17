@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::usize;
+use crate::dijkstria;
+
 use super::vec2::Vec2;
 use super::tools;
+use super::dijkstria::Edge;
 
 #[derive(Debug)]
 struct Data {
@@ -236,6 +239,45 @@ impl Data {
             
        ok.len()
     }
+
+    //todo in future
+    /*
+    fn get_edges(&self,p:Vec2,d:char)->Vec<Edge>
+    {
+        let mut edges = vec![];
+        edges.push(Edge { node: 2, cost: 10 });
+        edges
+    }
+
+    fn bfsd(&self,dir:char)->usize
+    {
+        let mut graph = vec![];
+        let s = self.dx*self.dy;
+
+        graph.push(self.get_edges(self.s,dir)); //start
+        graph.push(vec![]); //end
+
+
+        dijkstria::shortest_path(&graph, 0, 1).unwrap()
+
+            // Node 0
+            vec![Edge { node: 2, cost: 10 },
+                 Edge { node: 1, cost: 1 }],
+            // Node 1
+            vec![Edge { node: 3, cost: 2 }],
+            // Node 2
+            vec![Edge { node: 1, cost: 1 },
+                 Edge { node: 3, cost: 3 },
+                 Edge { node: 4, cost: 1 }],
+            // Node 3
+            vec![Edge { node: 0, cost: 7 },
+                 Edge { node: 4, cost: 2 }],
+            // Node 4
+            vec![]];
+        
+        
+    }
+    */
 
     fn count1(&mut self)->usize
     {
