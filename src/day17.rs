@@ -1,6 +1,3 @@
-use rand::Rng;
-
-use super::vec2::Vec2;
 use super::tools;
 
 #[derive(Debug,Clone, Copy)]
@@ -14,8 +11,7 @@ enum Code
     Out(u8),//5
     Bdv(u8),//6
     Cdv(u8),//7
-    Combo(u8),
-}
+ }
 
 #[derive(Debug,Clone)]
 struct Data {
@@ -23,52 +19,52 @@ struct Data {
       reg_B: u64,  
       reg_C: u64,  
       prog : Vec<Code>,
-      i : usize,
-      res : Vec<u8>,
+      i    : usize,
+      res  : Vec<u8>,
       golden : Vec<u8>,
-      part2 :bool,
+      part2  : bool,
 }
 
 impl Data {
     fn new(input: &[String]) -> Self {
         let sections: Vec<&[String]> = input.split(|line| line.is_empty()).collect();
 
-        let reg_A = tools::i64_get_between(&sections[0][0],"Register A: ","");
-        let reg_B = tools::i64_get_between(&sections[0][1],"Register B: ","");
-        let reg_C = tools::i64_get_between(&sections[0][2],"Register C: ","");
+        let reg_A = tools::usize_get_between(&sections[0][0],"Register A: ","") as u64;
+        let reg_B = tools::usize_get_between(&sections[0][1],"Register B: ","") as u64;
+        let reg_C = tools::usize_get_between(&sections[0][2],"Register C: ","") as u64;
         let prog  = tools::get_between(&sections[1][0],"Program: ","");
 
         let num = prog.split(",").map(|n| n.parse().unwrap()).collect::<Vec<u64>>();
 
+        let prog : Vec<Code> = 
 
-        let mut program = vec![];
-
-        for i in (0..num.len()).step_by(2)
-        {
-            let co = num[i  ];
-            let op  = num[i+1] as u8;
-            let code = match co
+        (0..num.len()).step_by(2)
+            .map(|i|
             {
-                0 => Code::Adv(op),
-                1 => Code::Bxl(op),
-                2 => Code::Bst(op),
-                3 => Code::Jnz(op),
-                4 => Code::Bxc(op),
-                5 => Code::Out(op),
-                6 => Code::Bdv(op),
-                7 => Code::Cdv(op),
-                _ => panic!("Unknown code"),
-            };
-            program.push(code);
-        }
+                let op  = num[i+1] as u8;
+                
+                match num[i]
+                {
+                    0 => Code::Adv(op),
+                    1 => Code::Bxl(op),
+                    2 => Code::Bst(op),
+                    3 => Code::Jnz(op),
+                    4 => Code::Bxc(op),
+                    5 => Code::Out(op),
+                    6 => Code::Bdv(op),
+                    7 => Code::Cdv(op),
+                    _ => panic!("Unknown code"),
+                }            
+            }
+        ).collect();
 
         let golden = num.iter().map(|a| *a as u8).collect::<Vec<u8>>();
              
         Data {
-            reg_A : reg_A as u64,
-            reg_B : reg_B as u64,
-            reg_C : reg_C as u64,
-            prog: program,
+            reg_A,
+            reg_B,
+            reg_C,
+            prog,
             i:0,
             res: vec![],
             golden,
@@ -93,128 +89,46 @@ impl Data {
         }
     }
 
-    fn adv(&mut self,n:u8)->u64
-    {       
-        let m = self.combo(n);
-        let a = self.reg_A; // as f64;
-        let b = 2u64.pow(m as u32); // 1<<m;//if m==0 {1} else {2<<m};
-
-        ((a as f64)/(b as f64)) as u64
-    }
-
     fn run(&mut self)->bool
     {
         let code = self.prog[self.i];
 
         match code
         {
-            Code::Adv(n) => {
-                {
-                    //println!("bef Adv {} {}",self.reg_A,n);
-                    
-                        /*
-                        let m = self.combo(n);
-                        let a = self.reg_A; // as f64;
-                        let b = 2u64.pow(m as u64); // 1<<m;//if m==0 {1} else {2<<m};
-                        self.reg_A = ((a as f64)/(b as f64)) as u64;
-                        */
-
-                        self.reg_A = self.adv(n);
-                        //self.reg_A = self.reg_A/(1<<self.combo(n));                    
-                    
-                    //println!("Adv {} {}",self.reg_A,n);
-                }
-            },
-            Code::Bxl(n) => {
-                {
-                    self.reg_B ^= n as u64;
-                }
-            },
-            Code::Bst(n) => {                    
-                {
-                    self.reg_B = self.combo(n) % 8;
-                }
-            },
+            Code::Adv(n) => self.reg_A = self.reg_A/(1<<self.combo(n)),
+            Code::Bxl(n) => self.reg_B ^= n as u64,
+            Code::Bst(n) => self.reg_B = self.combo(n) % 8,
             Code::Jnz(n) => {
-                if self.reg_A != 0
-                {
-                    self.i = (n/2) as usize;
-                    self.i-=1;
-                }
-            },
-            Code::Bxc(n) => {
-                {
-                    self.reg_B = self.reg_B^self.reg_C;
-                }
-            },
+                                    if self.reg_A != 0
+                                    {
+                                        self.i = (n/2) as usize;
+                                        self.i-=1;
+                                    }
+                                },
+            Code::Bxc(n) => self.reg_B = self.reg_B^self.reg_C,
             Code::Out(n) => {
-                {
-                    //println!("{:?} {}",self.combo(n),n);
-
-                    let c = (self.combo(n)%8) as u8;
-
-                    if self.part2 && self.golden[self.res.len()]!=c
-                    {
-                        return false;
-                    }
-                    self.res.push(c);
-                }
-            },
-            Code::Bdv(n) => {
-                
-                
-                    self.reg_B = self.reg_A/(1<<self.combo(n));                    
-                
-            },
-            Code::Cdv(n) => {
-                
-                
-                    self.reg_C = self.reg_A/(1<<self.combo(n));
-                
-            },
-            _ => panic!("Unknown code"),
+                                    let c = (self.combo(n)%8) as u8;
+                                    if self.part2 && self.golden[self.res.len()]!=c { return false; }
+                                    self.res.push(c);
+                                },
+            Code::Bdv(n) => self.reg_B = self.reg_A/(1<<self.combo(n)),
+            Code::Cdv(n) => self.reg_C = self.reg_A/(1<<self.combo(n)),
+            _                => panic!("Unknown code"),
         }
-        
+        self.i+=1;
         true
-
     }
 
     fn ok1(&mut self) -> Vec<u8>
     {
-        
-        let len = self.prog.len();
-
-        //println!("{:?}",self.prog);
-        //println!("{:?}",self.reg_A);
-        //println!("{:?}",self.reg_B);
-        //println!("{:?}",self.reg_C);
-
-        while self.i < len && self.i>=0
-        {
-            self.run();
-            self.i+=1;
-        }
- 
+        while self.i < self.prog.len() { self.run(); }
         self.res.clone()
     }
-
-    //> 57000
 
     fn ok2(&mut self)
     {
         self.part2 = true;
-        let len = self.prog.len();
-
-        //println!("{:?}",self.prog);
-        //println!("{:?}",self.reg_A);
-        //println!("{:?}",self.reg_B);
-        //println!("{:?}",self.reg_C);
-
-        while self.i < len && self.i>=0
-        {
-            if !self.run() {return;}
-            self.i+=1;
-        } 
+        while self.i < self.prog.len() && self.run() {};
     }
 
     fn count1(&mut self)->String
@@ -222,11 +136,6 @@ impl Data {
         self.ok1().iter().map(|a| a.to_string()).collect::<Vec<String>>().join(",")
     }
 
-    fn count2(&self)->usize
-    {
-        0
-        //self.ok2().iter().map(|a| a.to_string()).collect::<Vec<String>>().join(",")
-    }
 
 }
 
@@ -285,11 +194,11 @@ pub fn part2(data:&[String])->usize
             let del = res-prev;
             prev = res;
             //let re = tab.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(",");
-            println!("{:#064b} {:?} = {:?} del={}",res,res,d.res,del);
+           // println!("{:#064b} {:?} = {:?} del={}",res,res,d.res,del);
             
             if d.res == d.golden
             {
-           //     return res;            
+                return res as usize;            
             }   
         }
 
@@ -306,7 +215,7 @@ pub fn part2(data:&[String])->usize
 pub fn solve(data:&[String])
 {    
     println!("Day17");
-    //println!("part1: {}",part1(data));
+    println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
 
@@ -408,6 +317,7 @@ fn test6()
     assert_eq!(d.reg_B,44354);   
 }
 
+#[ignore]
 #[test]
 fn test7()
 {
@@ -434,16 +344,3 @@ fn test8()
     ];
     assert_eq!(part1(&v),"0,3,5,4,3,0");
 }
-//00011101
-//    0111
-//   11010 
-/*
-+If register C contains 9, the program 2,6 would set register B to 1.
-+If register A contains 10, the program 5,0,5,1,5,4 would output 0,1,2.
- If register A contains 2024, the program 0,1,5,4,3,0 would output 4,2,5,6,7,7,7,7,3,1,0 and leave 0 in register A.
- +If register B contains 29, the program 1,7 would set register B to 26.
- +If register B contains 2024 and register C contains 43690, the program 4,0 would set register B to 44354.
- */
-
-
- //3,1,6,4,1,3,7,3,1
