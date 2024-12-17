@@ -254,7 +254,7 @@ impl Data {
                     last_pos = last_pos.addv(Vec2::new(-1,0));
                 }
 
-                let (ok,moves) = self.push(&vec![last_pos],m,offset);
+                let (ok,moves) = self.push(&[last_pos],m,offset);
 
                 if ok
                 {

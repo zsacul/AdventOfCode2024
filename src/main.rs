@@ -4,7 +4,7 @@ use timer::Timer;
 mod tools;
 //mod pixoo;
 mod dijkstria;
-use std::thread;
+//use std::thread;
 //mod cycliclist;
 //mod cyclic2;
 mod timer;

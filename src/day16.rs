@@ -1,10 +1,9 @@
 use std::collections::{HashMap, HashSet};
-use std::usize;
-use crate::dijkstria;
+//use crate::dijkstria;
+//use super::dijkstria::Edge;
 
 use super::vec2::Vec2;
 use super::tools;
-use super::dijkstria::Edge;
 
 #[derive(Debug)]
 struct Data {
@@ -115,7 +114,7 @@ impl Data {
         q.push((self.s,dir,0));
         let mut best = usize::MAX;
 
-        while q.len() > 0
+        while !q.is_empty()
         {
             let (p,df,cost) = q.remove(0);
             
@@ -130,13 +129,10 @@ impl Data {
                 continue;
             }
 
-            if p == self.e
+            if p == self.e && cost<best
             {
-                if cost<best
-                {
-                    best = cost;
-                    //println!("best: {}",best);
-                }
+                best = cost;
+                //println!("best: {}",best);
             }
 
             if self.get(p) != '.' && p != self.s
@@ -220,17 +216,17 @@ impl Data {
                 let cl = self.v(p ,dl);
                 let cr = self.v(p,dr);
 
-                if cost>=cf+1 && (self.get(pb)=='.' || self.get(pb)=='S')
+                if cf < cost && (self.get(pb)=='.' || self.get(pb)=='S')
                 {
-                    q.push((pb,d,cf));            ok.insert(pb);
+                    q.push((pb,d,cf));  ok.insert(pb);
                 }
                 if cost>=cl+1000
                 {
-                    q.push((p,dl,cl));            ok.insert(p);
+                    q.push((p,dl,cl));  ok.insert(p);
                 }
                 if cost>=cr+1000
                 {
-                    q.push((p,dr,cr));            ok.insert(p);
+                    q.push((p,dr,cr));  ok.insert(p);
                 }
             }
        }

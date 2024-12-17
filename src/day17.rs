@@ -7,7 +7,7 @@ enum Code
     Bxl(u8),//1
     Bst(u8),//2
     Jnz(u8),//3
-    Bxc(u8),//4
+    Bxc    ,//4
     Out(u8),//5
     Bdv(u8),//6
     Cdv(u8),//7
@@ -15,9 +15,9 @@ enum Code
 
 #[derive(Debug,Clone)]
 struct Data {
-      reg_A: u64,  
-      reg_B: u64,  
-      reg_C: u64,  
+      reg_a: u64,  
+      reg_b: u64,  
+      reg_c: u64,  
       prog : Vec<Code>,
       i    : usize,
       res  : Vec<u8>,
@@ -29,9 +29,9 @@ impl Data {
     fn new(input: &[String]) -> Self {
         let sections: Vec<&[String]> = input.split(|line| line.is_empty()).collect();
 
-        let reg_A = tools::usize_get_between(&sections[0][0],"Register A: ","") as u64;
-        let reg_B = tools::usize_get_between(&sections[0][1],"Register B: ","") as u64;
-        let reg_C = tools::usize_get_between(&sections[0][2],"Register C: ","") as u64;
+        let reg_a = tools::usize_get_between(&sections[0][0],"Register A: ","") as u64;
+        let reg_b = tools::usize_get_between(&sections[0][1],"Register B: ","") as u64;
+        let reg_c = tools::usize_get_between(&sections[0][2],"Register C: ","") as u64;
         let prog  = tools::get_between(&sections[1][0],"Program: ","");
 
         let num = prog.split(",").map(|n| n.parse().unwrap()).collect::<Vec<u64>>();
@@ -49,7 +49,7 @@ impl Data {
                     1 => Code::Bxl(op),
                     2 => Code::Bst(op),
                     3 => Code::Jnz(op),
-                    4 => Code::Bxc(op),
+                    4 => Code::Bxc,
                     5 => Code::Out(op),
                     6 => Code::Bdv(op),
                     7 => Code::Cdv(op),
@@ -61,9 +61,9 @@ impl Data {
         let golden = num.iter().map(|a| *a as u8).collect::<Vec<u8>>();
              
         Data {
-            reg_A,
-            reg_B,
-            reg_C,
+            reg_a,
+            reg_b,
+            reg_c,
             prog,
             i:0,
             res: vec![],
@@ -80,9 +80,9 @@ impl Data {
             1 => 1,
             2 => 2,
             3 => 3,
-            4 => self.reg_A,
-            5 => self.reg_B,
-            6 => self.reg_C,
+            4 => self.reg_a,
+            5 => self.reg_b,
+            6 => self.reg_c,
             7 => panic!("Invalid program"),
             _ => panic!("Unknown code"),
             
@@ -95,25 +95,25 @@ impl Data {
 
         match code
         {
-            Code::Adv(n) => self.reg_A = self.reg_A/(1<<self.combo(n)),
-            Code::Bxl(n) => self.reg_B ^= n as u64,
-            Code::Bst(n) => self.reg_B = self.combo(n) % 8,
+            Code::Adv(n) => self.reg_a /= 1<<self.combo(n),
+            Code::Bxl(n) => self.reg_b ^= n as u64,
+            Code::Bst(n) => self.reg_b = self.combo(n) % 8,
             Code::Jnz(n) => {
-                                    if self.reg_A != 0
+                                    if self.reg_a != 0
                                     {
                                         self.i = (n/2) as usize;
                                         self.i-=1;
                                     }
                                 },
-            Code::Bxc(n) => self.reg_B = self.reg_B^self.reg_C,
+            Code::Bxc   => self.reg_b ^= self.reg_c,
             Code::Out(n) => {
                                     let c = (self.combo(n)%8) as u8;
                                     if self.part2 && self.golden[self.res.len()]!=c { return false; }
                                     self.res.push(c);
                                 },
-            Code::Bdv(n) => self.reg_B = self.reg_A/(1<<self.combo(n)),
-            Code::Cdv(n) => self.reg_C = self.reg_A/(1<<self.combo(n)),
-            _                => panic!("Unknown code"),
+            Code::Bdv(n) => self.reg_b = self.reg_a/(1<<self.combo(n)),
+            Code::Cdv(n) => self.reg_c = self.reg_a/(1<<self.combo(n)),
+            //_                => panic!("Unknown code"),
         }
         self.i+=1;
         true
@@ -150,38 +150,29 @@ pub fn part1(data:&[String])->String
 pub fn part2(data:&[String])->usize
 {
     let mut d = Data::new(data);
-    let b = d.reg_B;
-    let c = d.reg_C;
+    let b = d.reg_b;
+    let c = d.reg_c;
 
     println!("{:?}",d.golden);
 
     let mut re = 0u64;//281_474_900_000_000;
-    let mut prev = 0;
-
-    //d.golden = vec![2,4,1,5,7,5,1,6,0,3,4,3,5,5,3,0];
-    //d.golden = vec![0,3,5,4,3,0];
-
-    let mut rng = rand::thread_rng();
-    //3110000000
+    //let mut prev = 0;
+    
     loop 
     {
 //        let res = re;//(re << 19) + 0b0100010100110011010;
           let res = (re << 14) + 0b10100110011010;
-//
-//
+
+
 //10100110011010
-        //
 //"00100010100110011010"
 //100100010100110011010
-        d.reg_A = res as u64;
-        d.reg_B = b;
-        d.reg_C = c;
+        d.reg_a = res;
+        d.reg_b = b;
+        d.reg_c = c;
         d.i = 0;
         d.res = vec![];
-        //d.run();
 
-        //>64K
-        //let tab = 
         d.ok2();
 
         //hard test up to:
@@ -191,8 +182,8 @@ pub fn part2(data:&[String])->usize
         if d.res.len()==d.golden.len()
         //-10
         {
-            let del = res-prev;
-            prev = res;
+            //let del = res-prev;
+            //prev = res;
             //let re = tab.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(",");
            // println!("{:#064b} {:?} = {:?} del={}",res,res,d.res,del);
             
@@ -203,7 +194,7 @@ pub fn part2(data:&[String])->usize
         }
 
 
-        if re%1000_000_000==0
+        if re%1_000_000_000==0
         {
             println!("{}",res);
         }
@@ -244,10 +235,10 @@ fn test2()
         "Program: 2,6".to_string(),
     ];
     let mut d = Data::new(&v);
-    d.reg_C = 9;
+    d.reg_c = 9;
     d.run();
 
-    assert_eq!(d.reg_B,1);
+    assert_eq!(d.reg_b,1);
 }
 
 #[test]
@@ -260,7 +251,7 @@ fn test3()
         "".to_string(),
         "Program: 5,0,5,1,5,4".to_string(),
     ];
-    //let mut d = Data::new(&v);
+
     assert_eq!(part1(&v),"0,1,2");
 }
 
@@ -279,9 +270,9 @@ fn test4()
     
     println!("tesd2");
     let mut d = Data::new(&v);
-    let c = d.count1();
-    //d.run();
-    assert_eq!(d.reg_A,0);
+    d.count1();
+
+    assert_eq!(d.reg_a,0);
 }
 
 #[test]
@@ -297,7 +288,7 @@ fn test5()
 
     let mut d = Data::new(&v);
     d.run();
-    assert_eq!(d.reg_B,26);   
+    assert_eq!(d.reg_b,26);   
 }
 
 #[test]
@@ -314,7 +305,7 @@ fn test6()
     let mut d = Data::new(&v);
     //let c = d.count1();
     d.run();
-    assert_eq!(d.reg_B,44354);   
+    assert_eq!(d.reg_b,44354);   
 }
 
 #[ignore]
