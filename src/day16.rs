@@ -1,6 +1,11 @@
+/*
+Day16
+part1: 83444
+part2: 483
+Elapsed: 57.192 secs
+*/
+
 use std::collections::{HashMap, HashSet};
-//use crate::dijkstria;
-//use super::dijkstria::Edge;
 
 use super::vec2::Vec2;
 use super::tools;
@@ -236,7 +241,7 @@ impl Data {
        ok.len()
     }
 
-    //todo in future
+    //todo: replace for dijkstia in future
     /*
     fn get_edges(&self,p:Vec2,d:char)->Vec<Edge>
     {
