@@ -18,17 +18,15 @@ impl Data {
         let mut hash = HashMap::new();
         let mut pos = vec![];
 
-        for l in input.iter()
+        for line in input.iter()
         {
-            let t = tools::split_to_usize(l, ",");
-            let v = Vec2::new(t[0] as i64,t[1] as i64);
-
-            pos.push(v);
+            let tab = tools::split_to_usize(line, ",");
+            pos.push(Vec2::new(tab[0] as i64,tab[1] as i64));
         }
 
-        for i in 0..fall
+        for &p in pos.iter().take(fall)
         {            
-            hash.insert(pos[i],'#');
+            hash.insert(p,'#');
         }
 
         Data 
@@ -89,18 +87,11 @@ impl Data {
                 }
 
                 for n in p.around4()
-                {
-                    if n.x<0 || n.y<0 || n.x>=self.dx as i64 || n.y>=self.dy as i64
+                {                   
+                    if n.x>=0 && n.y>=0 && n.x<self.dx as i64 && n.y<self.dy as i64 && self.get(n) == '.'
                     {
-                        
-                    }
-                      else
-                    {
-                        if self.get(n) == '.'
-                        {
-                            self.set(n,'O');
-                            stack.push(n);
-                        }
+                        self.set(n,'O');
+                        stack.push(n);
                     }
                 }
             }
@@ -123,6 +114,7 @@ pub fn part2(data:&[String],dx:usize,dy:usize)->String
     loop
     {
         let mut data = Data::new(data,dx,dy,steps);
+
         if data.count()==0
         {
             let pos= data.pos[steps-1];
@@ -130,11 +122,6 @@ pub fn part2(data:&[String],dx:usize,dy:usize)->String
         }
         steps+=1;
     }
-
-    //let r = d.pos[f-2];
-    //let res = format!("{},{}",r.x,r.y);
-
-    "error".to_string()
 }
 
 #[allow(unused)]
