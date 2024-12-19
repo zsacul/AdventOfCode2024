@@ -95,39 +95,36 @@ impl Data {
         self.possible2(ask,&mut memo)
     }
     
+    fn get_possible(&mut self)->Vec<String>
+    {
+        self.asked.clone().iter()
+                          .filter(|a| self.ok1(a.to_string()))
+                          .cloned()
+                          .collect()
+    }
 
     fn count1(&mut self)->usize
     {        
-        self.asked
-            .clone()
-            .iter()
-            .filter(|a| self.ok1(a.to_string()))
-            .count()
+        self.get_possible().len()
     }
 
     fn count2(&mut self)->usize
     {        
-        let filtered: Vec<String> = self.asked.clone().iter()
-                                    .filter(|a| self.ok1(a.to_string()))
-                                    .cloned()
-                                    .collect();
-
-        filtered.iter()
-                .map(|b| self.ok2(b.to_string()))
-                .sum()
+        self.get_possible()
+            .iter()
+            .map(|b| self.ok2(b.to_string()))
+            .sum()
     }
 }
 
 pub fn part1(data:&[String])->usize
 {
-    let mut d = Data::new(data);
-    d.count1()
+    Data::new(data).count1()    
 }
   
 pub fn part2(data:&[String])->usize
 {
-    let mut d = Data::new(data);
-    d.count2()
+    Data::new(data).count2()    
 }
 
 #[allow(unused)]
