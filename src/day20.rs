@@ -210,7 +210,7 @@ impl Data {
             {        
                 let pos = Vec2::new(x as i64,y as i64);
 
-                if *self.hash.get(&pos).unwrap_or(&'#')=='.'
+                if self.get(pos)=='.'
                 {
                     self.e = Vec2::new(x as i64,y as i64);
                     costs_to.insert(pos, self.bfs());
@@ -219,8 +219,6 @@ impl Data {
         }
 
         self.e = orge;
-
-
         let mut costs = HashMap::new();
 
         for y in 0..self.dy
@@ -229,7 +227,7 @@ impl Data {
             {        
                 let pos = Vec2::new(x as i64,y as i64);
 
-                if *self.hash.get(&pos).unwrap_or(&'#')=='.'
+                if self.get(pos)=='.'
                 {
                     self.s = Vec2::new(x as i64,y as i64);
                     costs.insert(pos, self.bfs());
@@ -239,8 +237,9 @@ impl Data {
 
         self.s = orgs;
 
-        let mut res = 99999999;
+        
         let mut count=0;
+        let mut amount = HashMap::new();
 
         for y in 0..self.dy
         {
@@ -250,29 +249,35 @@ impl Data {
 
                 if !costs_to.contains_key(&pos) { continue; }
 
-                for ny in pos.y-step..=pos.y+step
+                let ss = step;
+
+                for ny in pos.y-ss..=pos.y+ss
                 {
-                    for nx in pos.x-step..=pos.x+step
+                    for nx in pos.x-ss..=pos.x+ss
                     {
-                        if (pos.x-nx).abs() + (pos.y-ny).abs() <= step
+                        let cos = (pos.x-nx).abs() + (pos.y-ny).abs();
+                        let moves = cos;
+
+                        if  moves>=2 && moves<= step
                         {
                             let np = Vec2::new(nx,ny);
-                            let ast = self.get(np);
 
-                            if (ast=='.' || ast=='E') && costs.contains_key(&np) && costs_to.contains_key(&pos) 
+                            if self.get(np)=='.' && costs.contains_key(&np) && costs_to.contains_key(&pos) 
                             {
                                 let cost_t   = *costs_to.get(&pos).unwrap();  
                                 let cost_f   = *costs.get(&np).unwrap();
-                                let ncost    =  cost_t + cost_f + 2;   
+                                let ncost    =  cost_t + cost_f + cos as usize;   
                                 let cost_org = *costs.get(&self.s).unwrap();
 
                                 let save = (cost_org as i64) - (ncost as i64);
-                                res = res.min(ncost);                                
 
                                 if save>=lim
                                 {
                                     count+=1;
-                                    println!("{:?} {:?} {} {} {} = {}",pos,np,ncost,res,cost_org,save);
+                                    let a = amount.get(&save).unwrap_or(&0);
+                                    amount.insert(save, a+1);
+                                    
+                                   // println!("{:?} {:?} {} {} {} = {}",pos,np,ncost,res,cost_org,save);
                                 }
                             }
                         }
@@ -280,12 +285,22 @@ impl Data {
                 }
             }
         }
+        
+
+        let mut v = vec![];
+        for (s,a) in amount
+        {
+            v.push((s,a));
+        }
+        v.sort();
+        println!("{:?}",v);
 
         count
 
     }
 
 }
+
 
 
 
@@ -303,11 +318,15 @@ pub fn part2(data:&[String],step:i64,lim:i64)->usize
 pub fn solve(data:&[String])
 {    
     println!("Day20");
-    println!("part1: {}",part1(data));
-    println!("part2: {}",part2(data,200,100));
+    //println!("part1: {}",part1(data));
+    println!("part2: {}",part2(data,20,100));
 }
 
+//41759508
+//too high
 
+//1029849
+//too high
 
 #[test]
 fn test1()
@@ -329,7 +348,7 @@ fn test1()
         "#...#...#...###".to_string(),
         "###############".to_string(),
     ];
-    assert_eq!(part2(&v,2,20),5);
+    assert_eq!(part2(&v,2,1),5);
 }
 
 
@@ -353,5 +372,5 @@ fn test2()
         "#...#...#...###".to_string(),
         "###############".to_string(),
     ];
-    assert_eq!(part2(&v,20,100),7036);
+    assert_eq!(part2(&v,20,50),285);
 }
