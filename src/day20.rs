@@ -304,9 +304,9 @@ impl Data {
 
 
 
-pub fn part1(data:&[String])->usize
+pub fn part1(data:&[String],lim:i64)->usize
 {
-    Data::new(data).count2(2,100)
+    Data::new(data).count2(2,lim)
 }
 
 pub fn part2(data:&[String],step:i64,lim:i64)->usize
@@ -318,15 +318,9 @@ pub fn part2(data:&[String],step:i64,lim:i64)->usize
 pub fn solve(data:&[String])
 {    
     println!("Day20");
-    //println!("part1: {}",part1(data));
-    println!("part2: {}",part2(data,20,100));
+    println!("part1: {}",part1(data,100));
+    //println!("part2: {}",part2(data,20,100));
 }
-
-//41759508
-//too high
-
-//1029849
-//too high
 
 #[test]
 fn test1()
@@ -348,7 +342,7 @@ fn test1()
         "#...#...#...###".to_string(),
         "###############".to_string(),
     ];
-    assert_eq!(part2(&v,2,1),5);
+    assert_eq!(part1(&v,100),5);
 }
 
 
@@ -372,5 +366,5 @@ fn test2()
         "#...#...#...###".to_string(),
         "###############".to_string(),
     ];
-    assert_eq!(part2(&v,20,50),285);
+    assert_eq!(part2(&v,20,74),7);
 }
