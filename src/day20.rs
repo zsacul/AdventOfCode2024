@@ -1,10 +1,3 @@
-/*
-Day16
-part1: 83444
-part2: 483
-Elapsed: 57.192 secs
-*/
-
 use std::collections::{HashMap, HashSet};
 
 use super::vec2::Vec2;
@@ -40,8 +33,6 @@ impl Data {
             e
         }
     }
-
-
 
     #[allow(unused)]
     fn print_hash(&self,vis:HashSet<Vec2>)
@@ -91,7 +82,7 @@ impl Data {
             if p == self.e 
             {
                 best = cost;
-                //return best;
+                return best;
                 //println!("best: {}",best);
             }
             
@@ -113,70 +104,17 @@ impl Data {
 
             for np in p.around4()
             {
-                
-                let cc = self.v(np);
-                //if cc <= cost+1
-                //{
-                  //  continue;
-                //}
-
-            
                 q.push((np,cost+1));                
             }
         }
-        //self.print_hash(self.visited.clone());
+
         best
     }    
-
-    //too high
-    //26482
 
     fn bfs2(&mut self,dir:char,bestv:usize)->usize
     {
         0
     }
-
-
-
-
-    //todo: replace for dijkstia in future
-    /*
-    fn get_edges(&self,p:Vec2,d:char)->Vec<Edge>
-    {
-        let mut edges = vec![];
-        edges.push(Edge { node: 2, cost: 10 });
-        edges
-    }
-
-    fn bfsd(&self,dir:char)->usize
-    {
-        let mut graph = vec![];
-        let s = self.dx*self.dy;
-
-        graph.push(self.get_edges(self.s,dir)); //start
-        graph.push(vec![]); //end
-
-
-        dijkstria::shortest_path(&graph, 0, 1).unwrap()
-
-            // Node 0
-            vec![Edge { node: 2, cost: 10 },
-                 Edge { node: 1, cost: 1 }],
-            // Node 1
-            vec![Edge { node: 3, cost: 2 }],
-            // Node 2
-            vec![Edge { node: 1, cost: 1 },
-                 Edge { node: 3, cost: 3 },
-                 Edge { node: 4, cost: 1 }],
-            // Node 3
-            vec![Edge { node: 0, cost: 7 },
-                 Edge { node: 4, cost: 2 }],
-            // Node 4
-            vec![]];
-        
-        
-    }
-    */
 
     fn count1(&mut self,step:i64)->usize
     {
@@ -218,7 +156,6 @@ impl Data {
         }
 
         self.s = orgs;
-        //costs.values().min().unwrap().clone();
 
         let mut res = 99999999;
         let mut count=0;
@@ -229,7 +166,7 @@ impl Data {
             {        
                 let pos = Vec2::new(x as i64,y as i64);
 
-                if !costs.contains_key(&pos) {continue;}
+                if !costs_to.contains_key(&pos) {continue;}
 
                 for d in Vec2::dirs4()
                 {
@@ -247,34 +184,105 @@ impl Data {
                          res = res.min(ncost);
 
                          if save>=100
-                         //if save>0
+                         //if save>=1
                          {
                             count+=1;
                             println!("{:?} {:?} {} {} {} = {}",pos,np,ncost,res,cost_org,save);
                          }
                     }
                 }
-
-
-                
-                //let pos = Vec2::new(x as i64,y as i64);
-//
-                //if *self.hash.get(&pos).unwrap_or(&'#')=='.'
-                //{
-                //    self.s = Vec2::new(x as i64,y as i64);
-                //    costs.insert(pos, self.bfs());
-                //}
             }
         }
-
 
         count
 
     }
 
-    fn count2(&mut self)->usize
+    fn count2(&mut self,step:i64,lim:i64)->usize
     {
-        0
+        let orgs = self.s;
+        let orge = self.e;
+        let mut costs_to = HashMap::new();
+
+        for y in 0..self.dy
+        {
+            for x in 0..self.dx
+            {        
+                let pos = Vec2::new(x as i64,y as i64);
+
+                if *self.hash.get(&pos).unwrap_or(&'#')=='.'
+                {
+                    self.e = Vec2::new(x as i64,y as i64);
+                    costs_to.insert(pos, self.bfs());
+                }
+            }
+        }
+
+        self.e = orge;
+
+
+        let mut costs = HashMap::new();
+
+        for y in 0..self.dy
+        {
+            for x in 0..self.dx
+            {        
+                let pos = Vec2::new(x as i64,y as i64);
+
+                if *self.hash.get(&pos).unwrap_or(&'#')=='.'
+                {
+                    self.s = Vec2::new(x as i64,y as i64);
+                    costs.insert(pos, self.bfs());
+                }
+            }
+        }
+
+        self.s = orgs;
+
+        let mut res = 99999999;
+        let mut count=0;
+
+        for y in 0..self.dy
+        {
+            for x in 0..self.dx
+            {        
+                let pos = Vec2::new(x as i64,y as i64);
+
+                if !costs_to.contains_key(&pos) { continue; }
+
+                for ny in pos.y-step..=pos.y+step
+                {
+                    for nx in pos.x-step..=pos.x+step
+                    {
+                        if (pos.x-nx).abs() + (pos.y-ny).abs() <= step
+                        {
+                            let np = Vec2::new(nx,ny);
+                            let ast = self.get(np);
+
+                            if (ast=='.' || ast=='E') && costs.contains_key(&np) && costs_to.contains_key(&pos) 
+                            {
+                                let cost_t   = *costs_to.get(&pos).unwrap();  
+                                let cost_f   = *costs.get(&np).unwrap();
+                                let ncost    =  cost_t + cost_f + 2;   
+                                let cost_org = *costs.get(&self.s).unwrap();
+
+                                let save = (cost_org as i64) - (ncost as i64);
+                                res = res.min(ncost);                                
+
+                                if save>=lim
+                                {
+                                    count+=1;
+                                    println!("{:?} {:?} {} {} {} = {}",pos,np,ncost,res,cost_org,save);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        count
+
     }
 
 }
@@ -283,12 +291,12 @@ impl Data {
 
 pub fn part1(data:&[String])->usize
 {
-    Data::new(data).count1(2)    
+    Data::new(data).count2(2,100)
 }
 
-pub fn part2(data:&[String])->usize
+pub fn part2(data:&[String],step:i64,lim:i64)->usize
 {
-    Data::new(data).count2()
+    Data::new(data).count2(step,lim)
 }
 
 #[allow(unused)]
@@ -296,7 +304,7 @@ pub fn solve(data:&[String])
 {    
     println!("Day20");
     println!("part1: {}",part1(data));
-    println!("part2: {}",part2(data));
+    println!("part2: {}",part2(data,200,100));
 }
 
 
@@ -321,6 +329,29 @@ fn test1()
         "#...#...#...###".to_string(),
         "###############".to_string(),
     ];
-    assert_eq!(part1(&v),7036);
+    assert_eq!(part2(&v,2,20),5);
 }
 
+
+#[test]
+fn test2()
+{
+    let v = vec![
+        "###############".to_string(),
+        "#...#...#.....#".to_string(),
+        "#.#.#.#.#.###.#".to_string(),
+        "#S#...#.#.#...#".to_string(),
+        "#######.#.#.###".to_string(),
+        "#######.#.#...#".to_string(),
+        "#######.#.###.#".to_string(),
+        "###..E#...#...#".to_string(),
+        "###.#######.###".to_string(),
+        "#...###...#...#".to_string(),
+        "#.#####.#.###.#".to_string(),
+        "#.#...#.#.#...#".to_string(),
+        "#.#.#.#.#.#.###".to_string(),
+        "#...#...#...###".to_string(),
+        "###############".to_string(),
+    ];
+    assert_eq!(part2(&v,20,100),7036);
+}
