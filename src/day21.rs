@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::hash::Hash;
 use crate::vec2;
 
 use super::vec2::Vec2;
@@ -20,7 +21,7 @@ impl Robot {
         let mut robot = Robot{
             code:code.chars().collect(),
             pos :  if fin {Vec2::new(2,3)} else {Vec2::new(2,0)},
-            buttons:HashMap::new()
+            buttons : HashMap::new()
         };
         robot.add_buttons(fin);
 
@@ -91,28 +92,53 @@ impl Robot {
             'v' => Vec2::new( 0, 1),
             '<' => Vec2::new(-1, 0),
             '>' => Vec2::new( 1, 0),
-            'A' => Vec2::new( 1, 1),
+            //'A' => Vec2::new( 1, 1),
             _   => panic!("get_offset")
         }
     }
 
-    fn press(&mut self)->bool
+    /*
+    fn press(&mut self)->Vec2
     {     
         if self.buttons.contains_key(&self.pos)
         {
             let k = *self.buttons.get(&self.pos).unwrap();
 
-            if k == 'A'
-            {
-                return true
-            }
-            else
-            {
-                self.pos = self.pos.addv(self.get_offset(k));
-            }
+            return self.get_offset(k);
+            //if k == 'A'
+            //{
+            //    return true
+            //}
+            //else
+            //{
+            //    self.pos = self.pos.addv();
+            //}
         }
-        false
+        panic!("unable to press the key")
+        //false
     }
+     */
+
+    fn press_key(&mut self,key:char)->(bool,char)
+    {           
+        let was_action = key=='A';
+
+        if !was_action
+        {
+            let off = self.get_offset(key);
+            self.pos = self.pos.addv(off);
+        }
+
+        if self.valid_at_pos()
+        {
+            (was_action,self.get_key())
+        }
+            else
+        {
+            (was_action,'*')
+        }
+    }
+
 }
 
 struct AI
@@ -147,38 +173,58 @@ impl AI {
         let mut id=0;
         let mut action = true;
 
+        let mut key = key;
+
         while action && id<self.robots.len()
-        {
-            let k = self.robots[id].press();
-            if !k
-            {
-                action = false;
-            }
+        {            
+            let (was_action,nkey) =  self.robots[id].press_key(key);
+
+            action = was_action;
+            key = nkey;
+
             id+=1;
         }
 
         if id==self.robots.len()
         {
-            return (true,self.robots.last().unwrap().get_key());
+            return (true,key);//self.robots.last().unwrap().get_key());
         }
 
         (false,'*')
+    }
+
+    fn get_state(&mut self)->Vec<Vec2>
+    {
+        self.robots.iter().map(|r| r.pos).collect()
+    }
+
+    fn set_state(&mut self,state:&Vec<Vec2>)
+    {
+        for i in 0..self.robots.len()
+        {
+            self.robots[i].pos = state[i];
+        }
     }
 
     fn bfs(&mut self,des_code:String)->String
     {
         let mut q = Vec::new();
 
-        let mut state = vec![];
-        for r in self.robots.iter()
-        {
-            state.push(r.pos);
-        }
-        let k1 = ('^',"".to_string(),"^".to_string(),0,state.clone());
-        let k2 = ('<',"".to_string(),"<".to_string(),0,state.clone());
-        let k3 = ('v',"".to_string(),"v".to_string(),0,state.clone());
-        let k4 = ('>',"".to_string(),">".to_string(),0,state.clone());
+        let state = self.get_state();
 
+  //      println!("state {:?}",state);
+//        return "".to_string();
+
+        let mut visited = HashMap::new();
+
+        let k0 = ('A',"".to_string(),"".to_string(),0,state.clone());
+
+        let k1 = ('^',"".to_string(),"".to_string(),0,state.clone());
+        let k2 = ('<',"".to_string(),"".to_string(),0,state.clone());
+        let k3 = ('v',"".to_string(),"".to_string(),0,state.clone());
+        let k4 = ('>',"".to_string(),"".to_string(),0,state.clone());
+
+        q.push(k0);
         q.push(k1);
         q.push(k2);
         q.push(k3);
@@ -191,29 +237,36 @@ impl AI {
         {
             let (dir,code,keys,cost,states) = q.remove(0);
 
-            //warning
-            if cost>4
+            let hkey = (dir,code.clone(),states.clone());
+
+            if cost>=*visited.get(&hkey).unwrap_or(&88888888)
             {
                 continue;
             }
 
-            for i in 0..states.len()
+            //warning
+            if cost>12
             {
-                self.robots[i].pos = states[i];
-            }             
+              //  continue;
+            }
+            self.set_state(&states);
+
 
             if !self.robots.clone().iter().all(|r| r.valid_at_pos())
             {
+                //println!("keys {:?} dir: {} {:?}",keys,dir,states);
                 continue;
             }
 
             if code.len() != 0 && !des_code.starts_with(&code)
             {
+                //println!("not start {:?}",code);
                 continue;
             }
 
             if cost>=best
             {
+                println!("greater cost");
                 continue;
             }            
 
@@ -221,6 +274,13 @@ impl AI {
             {                
                 best      = cost;
                 best_code = keys.clone();
+                continue;
+            }
+
+            if code.len()>=des_code.len()
+            {
+                println!("greater len");
+                continue;
             }
 
             let k = self.do_key(dir);
@@ -230,28 +290,35 @@ impl AI {
                 continue;
             }
 
-            let mut ncode= code;
+            let nstate : Vec<Vec2> = self.get_state();
+            let mut ncode= code.clone();
 
-            if k.0
+            if k.0 && k.1!='*'
             {
                 ncode += &k.1.to_string();
+                println!("append {}",k.1);
+                println!("adding from state {} {} keys=[{}] {} = {:?}",dir,ncode.clone(),keys,cost,nstate.clone());
             }
 
-            let nstate :Vec<Vec2> = self.robots.iter().map(|r| r.pos).collect();
-   
-            println!("{} {} {} {} = {:?}",dir,code,keys,cost,state);
+            visited.insert((dir,ncode.clone(),nstate.clone()),cost);
 
-            let k5 = ('A',ncode.clone(),keys.clone()+"A",cost+1,nstate.clone());
-            let k1 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());
-            let k2 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
-            let k3 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
-            let k4 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());
-    
+            //println!("adding from state {} {} keys=[{}] {} = {:?}",dir,code,keys,cost,state);
+
+            let k1 = ('A',ncode.clone(),keys.clone()+"A",cost+1,nstate.clone());            
             q.push(k1);
+
+            let k2 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());            
             q.push(k2);
+
+            let k3 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
             q.push(k3);
+
+            let k4 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
             q.push(k4);            
+
+            let k5 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());            
             q.push(k5);            
+
         }
 
         best_code
@@ -310,6 +377,16 @@ pub fn solve(data:&[String])
     println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
+
+#[test]
+fn test0()
+{
+    let v = vec![
+        "029A".to_string(),
+    ];
+    assert_eq!(part1(&v),99999999);
+}
+
 
 #[test]
 fn test1()
