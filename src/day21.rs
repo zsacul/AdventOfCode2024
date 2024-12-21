@@ -1,0 +1,333 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+use crate::vec2;
+
+use super::vec2::Vec2;
+use super::tools;
+
+#[derive(Debug,Clone)]
+struct Robot
+{
+    code    : Vec<char>,
+    pos     : Vec2,        
+    buttons : HashMap<Vec2,char>,
+}
+
+impl Robot {
+
+    fn new(fin:bool,code:String )->Robot
+    {
+        let mut robot = Robot{
+            code:code.chars().collect(),
+            pos :  if fin {Vec2::new(2,3)} else {Vec2::new(2,0)},
+            buttons:HashMap::new()
+        };
+        robot.add_buttons(fin);
+
+        robot
+    }
+
+    fn add_buttons(&mut self,fin:bool)
+    {
+        if fin
+        {
+            self.buttons.insert(Vec2::new( 0, 0),'7');
+            self.buttons.insert(Vec2::new( 1, 0),'8');
+            self.buttons.insert(Vec2::new( 2, 0),'9');
+            self.buttons.insert(Vec2::new( 0, 1),'4');
+            self.buttons.insert(Vec2::new( 1, 1),'5');
+            self.buttons.insert(Vec2::new( 2, 1),'6');
+            self.buttons.insert(Vec2::new( 0, 2),'1');
+            self.buttons.insert(Vec2::new( 1, 2),'2');
+            self.buttons.insert(Vec2::new( 2, 2),'3');
+            
+            self.buttons.insert(Vec2::new( 1, 3),'0');
+            self.buttons.insert(Vec2::new( 2, 3),'A');
+        }
+        else
+        {
+            
+            self.buttons.insert(Vec2::new( 1, 0),'^');
+            self.buttons.insert(Vec2::new( 2, 0),'A');
+            self.buttons.insert(Vec2::new( 0, 1),'<');
+            self.buttons.insert(Vec2::new( 1, 1),'v');
+            self.buttons.insert(Vec2::new( 2, 1),'>');
+        }
+    }
+
+    fn valid(&self,pos:Vec2)->bool
+    {
+        self.buttons.contains_key(&pos)
+    }
+
+    fn valid_at_pos(&self)->bool
+    {
+        self.valid(self.pos)        
+    }
+
+    fn valid_moves(&self)->Vec<Vec2>
+    {
+        let mut res = Vec::new();
+        for v in self.pos.around4()
+        {        
+            if self.valid(v)
+            {
+                res.push(v);
+            }
+        }
+        res
+    }
+
+    fn get_key(&self)->char
+    {
+        *self.buttons.get(&self.pos).unwrap()
+    }
+
+    fn get_offset(&self,c:char)->Vec2
+    {
+        match c
+        {
+            '^' => Vec2::new( 0,-1),
+            'v' => Vec2::new( 0, 1),
+            '<' => Vec2::new(-1, 0),
+            '>' => Vec2::new( 1, 0),
+            'A' => Vec2::new( 1, 1),
+            _   => panic!("get_offset")
+        }
+    }
+
+    fn press(&mut self)->bool
+    {     
+        if self.buttons.contains_key(&self.pos)
+        {
+            let k = *self.buttons.get(&self.pos).unwrap();
+
+            if k == 'A'
+            {
+                return true
+            }
+            else
+            {
+                self.pos = self.pos.addv(self.get_offset(k));
+            }
+        }
+        false
+    }
+}
+
+struct AI
+{
+    robots:Vec<Robot>,
+    code:Vec<char>,
+    des:Vec<char>,
+    depth:usize
+}
+
+impl AI {
+
+    fn new(code:String,depth:usize)->AI
+    {
+        let mut robots = Vec::new();
+        for i in 0..depth
+        {
+            robots.push(Robot::new(i == depth-1,code.clone()));
+        }
+        
+        AI
+        {
+            robots,
+            code:Vec::new(),
+            des:code.chars().collect(),
+            depth
+        }
+    }
+
+    fn do_key(&mut self,key:char)->(bool,char)
+    {
+        let mut id=0;
+        let mut action = true;
+
+        while action && id<self.robots.len()
+        {
+            let k = self.robots[id].press();
+            if !k
+            {
+                action = false;
+            }
+            id+=1;
+        }
+
+        if id==self.robots.len()
+        {
+            return (true,self.robots.last().unwrap().get_key());
+        }
+
+        (false,'*')
+    }
+
+    fn bfs(&mut self,des_code:String)->String
+    {
+        let mut q = Vec::new();
+
+        let mut state = vec![];
+        for r in self.robots.iter()
+        {
+            state.push(r.pos);
+        }
+        let k1 = ('^',"".to_string(),"^".to_string(),0,state.clone());
+        let k2 = ('<',"".to_string(),"<".to_string(),0,state.clone());
+        let k3 = ('v',"".to_string(),"v".to_string(),0,state.clone());
+        let k4 = ('>',"".to_string(),">".to_string(),0,state.clone());
+
+        q.push(k1);
+        q.push(k2);
+        q.push(k3);
+        q.push(k4);
+
+        let mut best = usize::MAX;
+        let mut best_code = "".to_string();
+
+        while !q.is_empty()
+        {
+            let (dir,code,keys,cost,states) = q.remove(0);
+
+            //warning
+            if cost>4
+            {
+                continue;
+            }
+
+            for i in 0..states.len()
+            {
+                self.robots[i].pos = states[i];
+            }             
+
+            if !self.robots.clone().iter().all(|r| r.valid_at_pos())
+            {
+                continue;
+            }
+
+            if code.len() != 0 && !des_code.starts_with(&code)
+            {
+                continue;
+            }
+
+            if cost>=best
+            {
+                continue;
+            }            
+
+            if des_code == code && cost<best
+            {                
+                best      = cost;
+                best_code = keys.clone();
+            }
+
+            let k = self.do_key(dir);
+
+            if k.1=='*'
+            {
+                continue;
+            }
+
+            let mut ncode= code;
+
+            if k.0
+            {
+                ncode += &k.1.to_string();
+            }
+
+            let nstate :Vec<Vec2> = self.robots.iter().map(|r| r.pos).collect();
+   
+            println!("{} {} {} {} = {:?}",dir,code,keys,cost,state);
+
+            let k5 = ('A',ncode.clone(),keys.clone()+"A",cost+1,nstate.clone());
+            let k1 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());
+            let k2 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
+            let k3 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
+            let k4 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());
+    
+            q.push(k1);
+            q.push(k2);
+            q.push(k3);
+            q.push(k4);            
+            q.push(k5);            
+        }
+
+        best_code
+    }
+
+    
+}
+
+
+
+
+fn ok(s:&str,second:bool)->usize
+{
+    //let tab = s.split(" ").map(|a| a.parse().unwrap()).collect::<Vec<i32>>();
+    //let tab: Vec<String> = s.split(", ").map(|s| s.to_string()).collect();
+
+    if second
+    {
+        0
+        //(0..tab.len()).any(|i|
+          //  valid(tab[..i].iter().chain(tab[i+1..].iter()).copied().collect())
+        //)
+    }    
+      else 
+    {
+        let mut ai = AI::new(s.to_string(),3);
+        let ss = ai.bfs(s.to_string());
+        let sc  = s[..s.len()-1].parse::<usize>().unwrap();
+        sc*ss.len()
+    }
+}
+
+fn points(s:String,res:String)->usize
+{
+   s[..s.len()-1].parse::<usize>().unwrap()*res.len()
+}
+
+pub fn part1(data:&[String])->usize
+{
+   data.iter()
+       .map(|n| ok(n,false))
+       .sum()
+}
+
+pub fn part2(data:&[String])->usize
+{
+   data.iter()
+       .map(|n| ok(n,true))
+       .sum()
+}
+
+#[allow(unused)]
+pub fn solve(data:&[String])
+{    
+    println!("Day21");
+    println!("part1: {}",part1(data));
+    println!("part2: {}",part2(data));
+}
+
+#[test]
+fn test1()
+{
+    let v = vec![
+        "029A".to_string(),
+        "980A".to_string(),
+        "179A".to_string(),
+        "456A".to_string(),
+        "379A".to_string(),
+    ];
+    assert_eq!(part1(&v),126384);
+}
+
+#[test]
+fn test2()
+{
+    let v = vec![
+    ];
+    assert_eq!(part2(&v),0);
+}

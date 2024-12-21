@@ -6,11 +6,12 @@ use super::tools;
 #[derive(Debug)]
 struct Data {
       hash  : HashMap<Vec2,char>,   
-      visited : HashSet<Vec2>,
+    visited : HashSet<Vec2>,
       dx    : usize,
       dy    : usize,
       s     : Vec2,
       e     : Vec2,
+      cost  : HashMap<Vec2,i64>,   
 }
 
 impl Data {
@@ -30,7 +31,8 @@ impl Data {
             dx : input[0].len(),
             dy : input.len(),
             s,
-            e
+            e,
+            cost : HashMap::new(),
         }
     }
 
@@ -79,16 +81,20 @@ impl Data {
         {
             let (p,cost) = q.remove(0);
             
-            if p == self.e 
-            {
-                best = cost;
-                return best;
-                //println!("best: {}",best);
-            }
             
             if self.get(p) != '.' && p != self.s 
             {
                 continue;
+            }
+            
+            let a = *self.cost.get(&p).unwrap_or(&9999999);
+            self.cost.insert(p,a.min(cost));
+
+            if p == self.e 
+            {
+                best = best.min(cost as usize);
+                //return best;
+                //println!("best: {}",best);
             }
             
             if self.v(p)
@@ -204,6 +210,12 @@ impl Data {
         let orge = self.e;
         let mut costs_to = HashMap::new();
 
+        self.s = orge;
+        self.e = orgs;
+
+        let total_cost = self.bfs() as i64;
+        self.cost.clear();
+
         for y in 0..self.dy
         {
             for x in 0..self.dx
@@ -213,12 +225,18 @@ impl Data {
                 if self.get(pos)=='.'
                 {
                     self.e = Vec2::new(x as i64,y as i64);
-                    costs_to.insert(pos, self.bfs());
+                    let cc = *self.cost.get(&self.e).unwrap_or(&9999999);
+                    if cc!=9999999  
+                    {                        
+                        costs_to.insert(pos, cc);
+                    }
                 }
             }
         }
 
         self.e = orge;
+        self.s = orgs;
+
         let mut costs = HashMap::new();
 
         for y in 0..self.dy
@@ -264,7 +282,7 @@ impl Data {
 
                             if self.get(np)=='.' && costs.contains_key(&np) && costs_to.contains_key(&pos) 
                             {
-                                let cost_t   = *costs_to.get(&pos).unwrap();  
+                                let cost_t   = *costs_to.get(&pos).unwrap() as usize;  
                                 let cost_f   = *costs.get(&np).unwrap();
                                 let ncost    =  cost_t + cost_f + cos as usize;   
                                 let cost_org = *costs.get(&self.s).unwrap();
