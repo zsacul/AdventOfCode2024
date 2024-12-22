@@ -9,7 +9,6 @@ use super::tools;
 #[derive(Debug,Clone)]
 struct Robot
 {
-    code    : Vec<char>,
     pos     : Vec2,        
     buttons : HashMap<Vec2,char>,
 }
@@ -19,7 +18,6 @@ impl Robot {
     fn new(fin:bool,code:String )->Robot
     {
         let mut robot = Robot{
-            code:code.chars().collect(),
             pos :  if fin {Vec2::new(2,3)} else {Vec2::new(2,0)},
             buttons : HashMap::new()
         };
@@ -190,7 +188,7 @@ impl AI {
             return (true,key);//self.robots.last().unwrap().get_key());
         }
 
-        (false,'*')
+        (false,key)
     }
 
     fn get_state(&mut self)->Vec<Vec2>
@@ -217,21 +215,27 @@ impl AI {
 
         let mut visited = HashMap::new();
 
+        
+        let k2 = ('<',"".to_string(),"".to_string(),0,state.clone());
+        q.push(k2);
+        
+        let k3 = ('v',"".to_string(),"".to_string(),0,state.clone());
+        q.push(k3);
+
+        let k4 = ('>',"".to_string(),"".to_string(),0,state.clone());
+        q.push(k4);
+
         let k0 = ('A',"".to_string(),"".to_string(),0,state.clone());
+        q.push(k0);
 
         let k1 = ('^',"".to_string(),"".to_string(),0,state.clone());
-        let k2 = ('<',"".to_string(),"".to_string(),0,state.clone());
-        let k3 = ('v',"".to_string(),"".to_string(),0,state.clone());
-        let k4 = ('>',"".to_string(),"".to_string(),0,state.clone());
-
-        q.push(k0);
         q.push(k1);
-        q.push(k2);
-        q.push(k3);
-        q.push(k4);
+
 
         let mut best = usize::MAX;
         let mut best_code = "".to_string();
+
+        let mut count=0;
 
         while !q.is_empty()
         {
@@ -239,15 +243,19 @@ impl AI {
 
             let hkey = (dir,code.clone(),states.clone());
 
+            //println!("{} {:?}",count,hkey);
+            //count+=1;
+
+
             if cost>=*visited.get(&hkey).unwrap_or(&88888888)
             {
                 continue;
             }
 
             //warning
-            if cost>12
+            if cost>22
             {
-              //  continue;
+                continue;
             }
             self.set_state(&states);
 
@@ -258,7 +266,7 @@ impl AI {
                 continue;
             }
 
-            if code.len() != 0 && !des_code.starts_with(&code)
+            if code.len()>0 && !des_code.starts_with(&code)
             {
                 //println!("not start {:?}",code);
                 continue;
@@ -289,35 +297,53 @@ impl AI {
             {
                 continue;
             }
-
+            
             let nstate : Vec<Vec2> = self.get_state();
             let mut ncode= code.clone();
-
+            
             if k.0 && k.1!='*'
             {
                 ncode += &k.1.to_string();
-                println!("append {}",k.1);
-                println!("adding from state {} {} keys=[{}] {} = {:?}",dir,ncode.clone(),keys,cost,nstate.clone());
-            }
 
-            visited.insert((dir,ncode.clone(),nstate.clone()),cost);
+                if k.1!='A'
+                {
+                    println!("append {} adding from state {} [{}] keys=[{}] {} = {:?}",k.1,dir,ncode.clone(),keys,cost,nstate.clone());
+                }                
+                
+            }
+            
+            visited.insert((dir,ncode.clone(),nstate.clone()),cost+1);
 
             //println!("adding from state {} {} keys=[{}] {} = {:?}",dir,code,keys,cost,state);
+
+
+            if dir!='v'
+            {
+                let k2 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());            
+                q.push(k2);
+            }
+
+            if dir!='>'
+            {
+                let k3 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
+                q.push(k3);
+            }
+
+            if dir!='^'
+            {
+                let k4 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
+                q.push(k4);            
+            }
+
+            if dir!='<'
+            {
+                let k5 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());            
+                q.push(k5);            
+            }
 
             let k1 = ('A',ncode.clone(),keys.clone()+"A",cost+1,nstate.clone());            
             q.push(k1);
 
-            let k2 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());            
-            q.push(k2);
-
-            let k3 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
-            q.push(k3);
-
-            let k4 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
-            q.push(k4);            
-
-            let k5 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());            
-            q.push(k5);            
 
         }
 
