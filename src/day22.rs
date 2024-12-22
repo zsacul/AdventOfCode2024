@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use super::tools;
 
 fn mix(n:i64,sec:i64)->i64
 {
@@ -13,9 +12,9 @@ fn prune(n:i64)->i64
 
 fn evolve(sec:i64)->i64
 {
-    let mut sec = sec;    
-    sec = prune(mix(sec*64,sec));
-    sec = prune(mix(sec/32,sec));
+    let mut sec = sec;
+    sec = prune(mix(sec*64  ,sec));
+    sec = prune(mix(sec/32  ,sec));
     sec = prune(mix(sec*2048,sec));
     sec
 }
@@ -23,86 +22,70 @@ fn evolve(sec:i64)->i64
 fn count(s:i64,n:usize)->i64
 {
     let mut s = s;
-    for i in 0..n
+    for _ in 0..n
     {
         s = evolve(s);
     }
     s
 }
 
-fn count2(s:i64,n:usize)->Vec<(i64,i64)>
+fn count2(s:i64,n:usize)->(Vec<(i64,i64)>,HashMap<(i64,i64,i64,i64),i64>)
 {
+    let mut map = HashMap::new();
     let mut res = Vec::new();
+
     let mut s = s;
     let mut prev = s%10;
+
     for i in 0..n
     {
         s = evolve(s);
         res.push((s%10,s%10-prev));
         prev = s%10;
+
+        if i>3
+        {
+            let code = (res[i-4].1,res[i-3].1,res[i-2].1,res[i-1].1);
+            if !map.contains_key(&code)
+            {
+                map.insert(code,res[i-1].0);
+            }
+        }
     }
-    res
+    (res,map)
 }
 
 pub fn part1(data:&[String])->usize
 {
-    let mut res = 0;
-    for s in data
-    {
-        let n= s.parse::<i64>().unwrap();
-        res+=count(n,2000);
-    }
-
-    res as usize
+    data.iter().map(|s| count(s.parse::<i64>().unwrap(),2000) ).sum::<i64>() as usize
 }
 
-fn bananas(v:Vec<(i64,i64)>,p:&(i64,i64,i64,i64))->usize
+fn summ(res:&Vec<HashMap<(i64,i64,i64,i64),i64>>,p:&(i64,i64,i64,i64))->usize
 {
-    for i in 0..v.len()-4
-    {
-        if v[i].1==p.0 && v[i+1].1==p.1 && v[i+2].1==p.2 && v[i+3].1==p.3
-        {
-            //println!("{}: ",v[i+3].0);
-            return v[i+3].0 as usize;
-        }
-    }
-    0
-}
-
-fn summ(res:&Vec<Vec<(i64,i64)>>,p:&(i64,i64,i64,i64))->usize
-{
-    res.iter().map(|v| bananas(v.clone(),p)).sum()
+    res.iter().map(|m| 
+        *m.get(p).unwrap_or(&0) as usize
+    ).sum()
 }
 
 pub fn part2(data:&[String])->usize
 {
     let mut res = vec![];
+    let mut pos = HashSet::new();
+
     for s in data
     {
         let n= s.parse::<i64>().unwrap();
-        res.push(count2(n,2000));
-    }
+        let (vec,map) = count2(n,2000);
 
-    let mut pos = HashSet::new();
-    for seq in res.clone().iter()
-    {
-        seq.windows(4).for_each(|w| {
+        vec.windows(4).for_each(|w| {
             pos.insert((w[0].1,w[1].1,w[2].1,w[3].1));
         });
-    }
-    let mut cnt=0;
 
-    let mut gg=0;
-    for p in pos.iter()
-    {      
-        cnt = cnt.max(summ(&res,p));
+        res.push(map);
     }
 
-
-    cnt
+    pos.iter().map(|p| summ(&res,p) ).max().unwrap()
 }
-
-
 
 #[allow(unused)]
 pub fn solve(data:&[String])
