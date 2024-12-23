@@ -11,4 +11,5 @@ rand = "0.8.5"
 gif = "0.13.1"
 divoom = { path = "../divoom-main/divoom" }
 tokio = { version = "1.37.0", features = ["full"] }
+itertools = "0.13.0"
 

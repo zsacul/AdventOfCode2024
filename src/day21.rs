@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::hash::Hash;
-use crate::vec2;
-
 use super::vec2::Vec2;
 use super::tools;
 
@@ -43,9 +40,8 @@ impl Robot {
             self.buttons.insert(Vec2::new( 1, 3),'0');
             self.buttons.insert(Vec2::new( 2, 3),'A');
         }
-        else
+          else
         {
-            
             self.buttons.insert(Vec2::new( 1, 0),'^');
             self.buttons.insert(Vec2::new( 2, 0),'A');
             self.buttons.insert(Vec2::new( 0, 1),'<');
@@ -166,6 +162,98 @@ impl AI {
         }
     }
 
+    fn possiblex(&self,p:Vec2,dx:i64,dy:i64)->bool
+    {
+        let mut p = p;
+        for _ in 0..dx.abs()
+        {
+            p.x+=dx.signum();
+            if p==Vec2::new(0,4) { return false }
+        }
+        for _ in 0..dy.abs()
+        {
+            p.y+=dy.signum();
+            if p==Vec2::new(0,4) { return false }
+        }
+        true
+    }
+
+    fn possibley(&self,p:Vec2,dx:i64,dy:i64)->bool
+    {
+        let mut p = p;
+        for _ in 0..dy.abs()
+        {
+            p.y+=dy.signum();
+            if p==Vec2::new(0,4) { return false }
+        }
+        for _ in 0..dx.abs()
+        {
+            p.x+=dx.signum();
+            if p==Vec2::new(0,4) { return false }
+        }
+        true
+    }
+
+    fn short(&self)->HashMap<(char,char),Vec<String>>
+    {
+        let mut map = HashMap::new();
+
+        let keys = "A0123456789";
+        let mut pos = HashMap::new();
+
+        pos.insert('7',Vec2::new( 0, 0));
+        pos.insert('8',Vec2::new( 1, 0));
+        pos.insert('9',Vec2::new( 2, 0));
+        pos.insert('4',Vec2::new( 0, 1));
+        pos.insert('5',Vec2::new( 1, 1));
+        pos.insert('6',Vec2::new( 2, 1));
+        pos.insert('1',Vec2::new( 0, 2));
+        pos.insert('2',Vec2::new( 1, 2));
+        pos.insert('3',Vec2::new( 2, 2));
+        pos.insert('0',Vec2::new( 1, 3));
+        pos.insert('A',Vec2::new( 2, 3));
+
+        for a in 0..keys.len()
+        {
+            for b in 0..keys.len()
+            {
+                if a!=b
+                {
+                    let ac = keys.chars().nth(a).unwrap();
+                    let bc = keys.chars().nth(b).unwrap();
+                    let posa = *pos.get(&ac).unwrap();
+                    let posb = *pos.get(&bc).unwrap();
+                    let del  = posb.subv(posa);
+
+                    let h = (if del.x>0 {">"} else {"<"}).repeat(del.x.abs() as usize);
+                    let v = (if del.y>0 {"v"} else {"^"}).repeat(del.y.abs() as usize);
+
+                    let mut moves = vec![];
+                    if self.possiblex(posa,del.x,del.y)
+                    {
+                        moves.push([h.clone(),v.clone()].join(""));
+                    }
+                    if self.possibley(posa,del.y,del.x)
+                    {
+                        if v!=h
+                        {
+                            let sec = [v.clone(),h.clone()].join("");
+                            if moves[0]!=sec
+                            {
+                                moves.push(sec);
+                            }
+                        }
+                    }
+                    map.insert((ac,bc), moves);
+                }
+            }
+        }
+
+        println!("{:?}",map);
+
+        map
+    }
+
     fn do_key(&mut self,key:char)->(bool,char)
     {
         let mut id=0;
@@ -230,7 +318,7 @@ impl AI {
 
         let k1 = ('^',"".to_string(),"".to_string(),0,state.clone());
         q.push(k1);
-
+        
 
         let mut best = usize::MAX;
         let mut best_code = "".to_string();
@@ -353,9 +441,6 @@ impl AI {
     
 }
 
-
-
-
 fn ok(s:&str,second:bool)->usize
 {
     //let tab = s.split(" ").map(|a| a.parse().unwrap()).collect::<Vec<i32>>();
@@ -371,7 +456,11 @@ fn ok(s:&str,second:bool)->usize
       else 
     {
         let mut ai = AI::new(s.to_string(),3);
-        let ss = ai.bfs(s.to_string());
+
+        ai.short();
+
+        let ss = "".to_string();
+        //ai.bfs(s.to_string());
         let sc  = s[..s.len()-1].parse::<usize>().unwrap();
         sc*ss.len()
     }

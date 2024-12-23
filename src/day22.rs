@@ -46,10 +46,7 @@ fn count2(s:i64,n:usize)->(Vec<(i64,i64)>,HashMap<(i64,i64,i64,i64),i64>)
         if i>3
         {
             let code = (res[i-4].1,res[i-3].1,res[i-2].1,res[i-1].1);
-            if !map.contains_key(&code)
-            {
-                map.insert(code,res[i-1].0);
-            }
+            map.entry(code).or_insert(res[i-1].0);
         }
     }
     (res,map)
