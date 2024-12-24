@@ -140,7 +140,9 @@ struct AI
     robots:Vec<Robot>,
     code:Vec<char>,
     des:Vec<char>,
-    depth:usize
+    depth:usize,
+    big:HashMap<(char,char),Vec<String>>,
+    small:HashMap<(char,char),Vec<String>>,
 }
 
 impl AI {
@@ -158,60 +160,77 @@ impl AI {
             robots,
             code:Vec::new(),
             des:code.chars().collect(),
-            depth
+            depth,
+            big   : AI::short(false),
+            small : AI::short(true)
         }
     }
 
-    fn possiblex(&self,p:Vec2,dx:i64,dy:i64)->bool
+    fn possiblex(p:Vec2,dx:i64,dy:i64,small:bool)->bool
     {
         let mut p = p;
+        let wrong = if small {Vec2::new(0, 0)} else {Vec2::new(0, 4)};
         for _ in 0..dx.abs()
         {
             p.x+=dx.signum();
-            if p==Vec2::new(0,4) { return false }
+            if p==wrong { return false }
         }
         for _ in 0..dy.abs()
         {
             p.y+=dy.signum();
-            if p==Vec2::new(0,4) { return false }
+            if p==wrong { return false }
         }
         true
     }
 
-    fn possibley(&self,p:Vec2,dx:i64,dy:i64)->bool
+    fn possibley(p:Vec2,dx:i64,dy:i64,small:bool)->bool
     {
         let mut p = p;
+        let wrong = if small {Vec2::new(0, 0)} else {Vec2::new(0, 4)};
         for _ in 0..dy.abs()
         {
             p.y+=dy.signum();
-            if p==Vec2::new(0,4) { return false }
+            if p==wrong { return false }
         }
         for _ in 0..dx.abs()
         {
             p.x+=dx.signum();
-            if p==Vec2::new(0,4) { return false }
+            if p==wrong { return false }
         }
         true
     }
 
-    fn short(&self)->HashMap<(char,char),Vec<String>>
+    fn short(small:bool)->HashMap<(char,char),Vec<String>>
     {
         let mut map = HashMap::new();
 
-        let keys = "A0123456789";
+        let mut keys = "".to_string();
         let mut pos = HashMap::new();
 
-        pos.insert('7',Vec2::new( 0, 0));
-        pos.insert('8',Vec2::new( 1, 0));
-        pos.insert('9',Vec2::new( 2, 0));
-        pos.insert('4',Vec2::new( 0, 1));
-        pos.insert('5',Vec2::new( 1, 1));
-        pos.insert('6',Vec2::new( 2, 1));
-        pos.insert('1',Vec2::new( 0, 2));
-        pos.insert('2',Vec2::new( 1, 2));
-        pos.insert('3',Vec2::new( 2, 2));
-        pos.insert('0',Vec2::new( 1, 3));
-        pos.insert('A',Vec2::new( 2, 3));
+        if small
+        {
+            keys = "^A<v>".to_string();
+            pos.insert('^',Vec2::new( 1, 0));
+            pos.insert('A',Vec2::new( 2, 0));
+            pos.insert('<',Vec2::new( 0, 1));
+            pos.insert('v',Vec2::new( 1, 1));
+            pos.insert('>',Vec2::new( 2, 1));
+        }
+          else 
+        {
+            keys = "0123456789A".to_string();
+            pos.insert('7',Vec2::new( 0, 0));
+            pos.insert('8',Vec2::new( 1, 0));
+            pos.insert('9',Vec2::new( 2, 0));
+            pos.insert('4',Vec2::new( 0, 1));
+            pos.insert('5',Vec2::new( 1, 1));
+            pos.insert('6',Vec2::new( 2, 1));
+            pos.insert('1',Vec2::new( 0, 2));
+            pos.insert('2',Vec2::new( 1, 2));
+            pos.insert('3',Vec2::new( 2, 2));
+            pos.insert('0',Vec2::new( 1, 3));
+            pos.insert('A',Vec2::new( 2, 3));
+        }
 
         for a in 0..keys.len()
         {
@@ -229,11 +248,11 @@ impl AI {
                     let v = (if del.y>0 {"v"} else {"^"}).repeat(del.y.abs() as usize);
 
                     let mut moves = vec![];
-                    if self.possiblex(posa,del.x,del.y)
+                    if AI::possiblex(posa,del.x,del.y,small)
                     {
                         moves.push([h.clone(),v.clone()].join(""));
                     }
-                    if self.possibley(posa,del.y,del.x)
+                    if AI::possibley(posa,del.y,del.x,small)
                     {
                         if v!=h
                         {
@@ -292,11 +311,18 @@ impl AI {
         }
     }
 
-    fn bfs(&mut self,des_code:String)->String
+    fn bfs(&mut self,des_code:String,level:usize)->String
     {
         let mut q = Vec::new();
 
         let state = self.get_state();
+
+        if des_code.len()==1
+        {
+            return "".to_string();
+        }
+
+        let moves = self.
 
   //      println!("state {:?}",state);
 //        return "".to_string();
@@ -457,9 +483,11 @@ fn ok(s:&str,second:bool)->usize
     {
         let mut ai = AI::new(s.to_string(),3);
 
-        ai.short();
+        let mut act = s.chars().next().unwrap();
 
-        let ss = "".to_string();
+        let ss = ai.bfs(s.to_string(),0);
+
+        //let ss = "".to_string();
         //ai.bfs(s.to_string());
         let sc  = s[..s.len()-1].parse::<usize>().unwrap();
         sc*ss.len()

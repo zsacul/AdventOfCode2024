@@ -34,7 +34,7 @@ mod day20;
 //mod day21;
 mod day22;
 mod day23;
-//mod day24;
+mod day24;
 //mod day25;
 
 //use divoom::*;
@@ -188,13 +188,12 @@ fn main() {
         let day19_data  = tools::read_1d_string("data/day19.txt");
         day19::solve(&day19_data);
     }
-*/
+
     {
         let _timer = Timer::new();
         let day20_data  = tools::read_1d_string("data/day20.txt");
         day20::solve(&day20_data);
     }
-/*
 
     {
         let _timer = Timer::new();
@@ -208,25 +207,25 @@ fn main() {
         let day22_data  = tools::read_1d_string("data/day22.txt");       
         day22::solve(&day22_data);
     }
-*/                        
     {
-        let _timer = Timer::new();
-        let day23_data  = tools::read_1d_string("data/day23.txt");
-        day23::solve(&day23_data);
-
-        //let child = thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(move || { 
+    let _timer = Timer::new();
+    let day23_data  = tools::read_1d_string("data/day23.txt");
+    day23::solve(&day23_data);
+    
+    //let child = thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(move || { 
         //    let _timer = Timer::new();
         //    let day23_data  = tools::read_1d_string("data/day23.txt");
         //    day23::solve(&day23_data);       
         //}).unwrap(); 
         //child.join().unwrap();
     }
-    /*                
+    */                        
     {
         let _timer = Timer::new();
         let day24_data  = tools::read_1d_string("data/day24.txt");
         day24::solve(&day24_data);       
-    } 
+        } 
+    /*                
     
     {
         let _timer = Timer::new();
