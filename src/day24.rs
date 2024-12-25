@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use super::tools;
+use rand::Rng;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq, Eq)]
 enum Operator
 {
     And,
@@ -12,7 +12,6 @@ enum Operator
 
 #[derive(Debug,Clone)]
 struct Gate {
-      op : String,
        a : String,
        b : String,
      out : String,
@@ -37,9 +36,15 @@ impl Gate
             "XOR" => Operator::Xor,
             _ => panic!("Unknown operator")
         };
-        Gate { op:op.to_string(), a:a.to_string(), b:b.to_string(), out:out.to_string(), oper}
+        Gate { a:a.to_string(), b:b.to_string(), out:out.to_string(), oper}
     }
 
+    fn swap(&mut self)
+    {
+        let t = self.a.clone();
+        self.a = self.b.clone();
+        self.b = t;
+    }
 
     fn evaluate(&self,va:Option<bool>,vb:Option<bool>)->Option<bool>
     {
@@ -156,6 +161,16 @@ impl Data {
         0
     }
 
+    fn number(&self,c:char)->usize
+    {
+         self.vals
+             .iter()
+             .filter(|(k,v)| k.starts_with(c))
+             .map(|z| if *z.1 {1<<z.0[1..].parse::<usize>().unwrap()} else {0})
+             .sum()
+    }
+
+
     fn count1(&mut self)->usize
     {
         loop 
@@ -163,7 +178,7 @@ impl Data {
             let mut done = true;
             let mut update = vec![];
 
-            for (k,v) in self.instr.iter()
+            for (_,v) in self.instr.iter()
             {
                 if self.get_v(v.out.clone()).is_none()
                 {
@@ -173,12 +188,7 @@ impl Data {
 
                     if res.is_some()
                     {
-                        //self.set_v(v.out.clone(),res.unwrap());
-                        //if v.vout.is_some()
-                        {
-                            //self.vals.insert(v.out.clone(),v.vout.unwrap());
-                            update.push((v.out.clone(),res));
-                        }
+                        update.push((v.out.clone(),res));
                         done = false;
                     }
                 }   
@@ -186,10 +196,7 @@ impl Data {
 
             for (v,g) in update.iter()
             {
-                //if g.vout.is_some()
-                //{
-                    self.set_v(v.clone(),g.unwrap());
-                //}
+                self.set_v(v.clone(),g.unwrap());
             }
             if done
             {
@@ -197,23 +204,189 @@ impl Data {
             }
         }
 
-        let zet:Vec<_> = self.vals
-                             .iter()
-                             .filter(|(k,v)| k.starts_with("z"))
-                             .map(|z| if *z.1 {1<<z.0[1..].parse::<usize>().unwrap()} else {0})
-                             .collect();
-
-        let res = zet.iter().sum();
-
-
-        println!("ins: {:?}",res);
-
-        res
+        self.number('z')
     }
 
-    fn count2(&self)->usize
+    fn swap(&mut self,a:String,b:String)
+    {     
+        let t =  self.instr.get(&a).unwrap().out.clone();
+        self.instr.get_mut(&a).unwrap().out = self.instr.get(&b).unwrap().out.clone();
+        self.instr.get_mut(&b).unwrap().out = t;
+        //let mut aa = self.instr.get(&a).unwrap().clone();
+        //let mut bb = self.instr.get(&b).unwrap().clone();
+        //let ts = aa.out.clone();
+        //aa.out = bb.out.clone();
+        //bb.out = ts;
+
+        
+        //let t  = aa;
+        //self.instr.insert(a, bb);
+        //self.instr.insert(b, t);
+    }
+
+    fn count2(&mut self)->String
     {
-        0
+        let n1 = self.number('x');
+        let n2 = self.number('y');
+
+        let mut ss:Vec<String> = self.instr.keys().map(|a| a.clone()).collect::<Vec<String>>();
+        ss.sort();
+        ss.dedup();
+
+
+        println!("ss:{:?}",ss);
+
+        let v: Vec<_> = self.instr.iter().filter(|a| a.1.oper != Operator::Xor && a.1.out.starts_with("z") ).collect();
+
+        println!("v:{:?}",v);
+
+
+        
+        //use rand to fill num as 8 distinct random numbers in range 0..ss.len()
+        
+        let rr = &mut rand::thread_rng();
+//        rr.gen_range(0..ss.len());
+
+        let mut num = vec![ 151,206,33,71,74,78,88,93];
+        //vec![157, 43, 141, 206, 43, 9, 77, 70];
+        // vec![165, 66, 137, 110, 214, 14, 150, 8];
+        
+        //vec![1,2,3,4,5,6,7,8];
+
+        let mut wrong = usize::MAX;
+        let mut best = num;
+
+        for i in 0..=44         
+        {
+            //2 trailing zeros
+            let xx = format!("x{:02}",i);
+            self.vals.insert(xx, !true);
+            let yy = format!("y{:02}",i);
+            self.vals.insert(yy, !true);
+
+            //format!("{:b}",i);
+        }
+        //return "".to_string();
+
+        let n1 = self.number('x');
+        let n2 = self.number('y');
+        let des = n1+n2;
+
+        println!("n1:{} n2:{} des:{}",n1,n2,des);
+
+        let vals_bkp = self.vals.clone();
+        let inst_bkp = self.instr.clone();
+
+        //vec![56, 206, 101, 191, 126, 66, 136, 25];
+        //vec![199, 8, 47, 87, 107, 23, 113, 218];
+        //vec![164, 192, 187, 87, 107, 23, 47, 191];
+        //vec![199, 8, 47, 87, 107, 23, 113, 218];
+
+        //let lucky = vec![56, 206, 101, 191, 126, 66, 136, 25];
+
+        //return 0;
+        
+        //bhb,ffj,gvj,kgr,nsc,tdw,wff,z30
+        //cfp,fhn,gdf,gdr,jjk,kff,tdw,z30
+        //bjc,bjf,bkg,bwq,hfq,kmr,ngc,vmd
+        //dvj,gvj,hrq,ngc,rkg,sgt,z15,z30
+        //dvj,gvj,hrq,ngc,rkg,sgt,z15,z30
+        //dvj,gvj,hrq,ngc,rkg,sgt,z15,z30
+        //gvj,z30,ngc,z15,rkg,hrq,sgt,dvj
+        loop {
+            
+            self.vals  = vals_bkp.clone();
+            self.instr = inst_bkp.clone();
+            
+            num = best.to_vec();
+
+            let count = rr.gen_range(1..=4)*2;
+
+                for i in 0..count
+                {
+                    let r = rr.gen_range(0..ss.len());
+                    let id = rr.gen_range(0..8);
+                    num[id] = r;
+                }
+
+             //   println!("num:{:?}",num);
+
+             self.swap(ss[num[0]].clone(),ss[num[1]].clone());
+             self.swap(ss[num[2]].clone(),ss[num[3]].clone());
+             self.swap(ss[num[4]].clone(),ss[num[5]].clone());
+             self.swap(ss[num[6]].clone(),ss[num[7]].clone());
+
+
+//            if self.instr.contains_key(&ss[d])
+        
+//              self.instr.get_mut(&ss[d]).unwrap().swap();
+
+
+                let c = self.count1();
+
+                //println!("a:{} b:{} c:{} d:{} res:{}",a,b,c,d,c);
+                if c == des 
+                {
+
+                    //println!("yes!");
+                    self.vals  = vals_bkp.clone();
+
+                    for i in 0..=44         
+                    {
+                        //2 trailing zeros
+                        let xx = format!("x{:02}",i);
+                        self.vals.insert(xx, true);
+                        let yy = format!("y{:02}",i);
+                        self.vals.insert(yy, true);
+            
+                        //format!("{:b}",i);
+                    }
+                    self.instr = inst_bkp.clone();
+                    self.swap(ss[num[0]].clone(),ss[num[1]].clone());
+                    self.swap(ss[num[2]].clone(),ss[num[3]].clone());
+                    self.swap(ss[num[4]].clone(),ss[num[5]].clone());
+                    self.swap(ss[num[6]].clone(),ss[num[7]].clone());
+    
+
+                    let n1 = self.number('x');
+                    let n2 = self.number('y');
+                    let des = n1+n2;
+
+                    if self.count1()==des
+                    {
+                        let mut outs = num.iter().map(|a| ss[*a as usize].to_string() ).collect::<Vec<String>>();
+                        outs.sort();
+                        let res = outs.join(",");
+                        println!("{}",res);
+                        return res;
+                    }
+
+                    
+
+            
+                }
+
+                let x = c^des;
+                let cc = x.count_ones() as usize;
+
+                if cc<=wrong
+                {
+                    wrong = cc;
+                    best = num.to_vec();
+
+                    /*
+                    println!("des:{:#048b}",des);
+                    println!("cnt:{:#048b}",c);
+                    println!("xor:{:#048b}",x);
+                    println!("ok :{}",cc);
+                    println!("num:{:?}",num);
+                    */
+                }
+
+
+
+        }
+        "none".to_string()
     }
 
 }
@@ -223,7 +396,7 @@ pub fn part1(data:&[String])->usize
     Data::new(data).count1()
 }
 
-pub fn part2(data:&[String])->usize
+pub fn part2(data:&[String])->String
 {
     Data::new(data).count2()
 }
@@ -309,3 +482,32 @@ fn test2()
         assert_eq!(part1(&v),4);
 }
     
+
+#[test]
+fn test3()
+{
+    let v = vec![
+        "x00: 0".to_string(),
+        "x01: 1".to_string(),
+        "x02: 0".to_string(),
+        "x03: 1".to_string(),
+        "x04: 0".to_string(),
+        "x05: 1".to_string(),
+        "y00: 0".to_string(),
+        "y01: 0".to_string(),
+        "y02: 1".to_string(),
+        "y03: 1".to_string(),
+        "y04: 0".to_string(),
+        "y05: 1".to_string(),
+        "".to_string(),
+        "x00 AND y00 -> z05".to_string(),
+        "x01 AND y01 -> z02".to_string(),
+        "x02 AND y02 -> z01".to_string(),
+        "x03 AND y03 -> z03".to_string(),
+        "x04 AND y04 -> z04".to_string(),
+        "x05 AND y05 -> z00".to_string(),
+        ];
+        assert_eq!(part2(&v),"aaa,aoc,bbb,ccc,eee,ooo,z24,z99".to_string());
+}
+    
+

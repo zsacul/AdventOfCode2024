@@ -322,7 +322,7 @@ impl AI {
             return "".to_string();
         }
 
-        let moves = self.
+//        let moves = self.
 
   //      println!("state {:?}",state);
 //        return "".to_string();
