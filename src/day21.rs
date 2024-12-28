@@ -336,8 +336,14 @@ impl AI {
     //<A<A^A<A^A>^^A<A^A>^^AvvvA
     //v<<A (<) >>^A (A) <A (^) >A (A) vA (>) <^A (^) A (^) >A (A) <vAAA>^A
 
-    fn bfs(&self,pref:String,old_c:char,id:usize,des_code:String,level:usize)->String
+    fn bfs(&self,memo:&mut HashMap<(String,char,usize,String,usize),String>,pref:String,old_c:char,id:usize,des_code:String,level:usize)->String
     {
+        let key = (pref.clone(),old_c,id,des_code.clone(),level);
+
+        if memo.contains_key(&key)
+        {
+            return memo.get(&key).unwrap().to_string();
+        }
         // 029A
         // <A^A>^^AvvvA
 
@@ -349,13 +355,17 @@ impl AI {
         if level==self.depth
         {
             //println!("final pref={} old_c={} des={} id={} lvl={}",pref,old_c,des_code,id,level);
+
+            memo.insert(key, des_code.to_string());
             return des_code.to_string();
         }
 
         //println!("idL:{}/{}",id,des_code.len());
         if id==des_code.len()
         {
-            return self.bfs("".to_string(),'A', 0, pref, level+1);
+            let rr = self.bfs(memo,"".to_string(),'A', 0, pref, level+1);
+            memo.insert(key, rr.clone());
+            return rr;
         }
 
         //println!("{}/{}",level,self.depth);
@@ -372,7 +382,7 @@ impl AI {
         {
             let pref = format!("{}{}A",pref,m);
             //let v = format!("{}{}",pref.clone(), 
-            let v = self.bfs(pref,c,id+1,des_code.to_string(),level);
+            let v = self.bfs(memo,pref,c,id+1,des_code.to_string(),level);
 
            // println!("[{},{}] v={}",level,id,v);
 
@@ -383,6 +393,7 @@ impl AI {
             }
         }          
 
+        memo.insert(key, res.clone());
         res
     }
 
