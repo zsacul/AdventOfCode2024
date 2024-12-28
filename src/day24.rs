@@ -1,8 +1,9 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use rand::Rng;
 
-#[derive(Debug,Clone,PartialEq, Eq)]
+#[derive(Debug,Clone,PartialEq, Eq,PartialOrd, Ord)]
 enum Operator
 {
     And,
@@ -10,7 +11,7 @@ enum Operator
     Xor,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq, Eq, PartialOrd, Ord)]
 struct Gate {
        a : String,
        b : String,
@@ -23,9 +24,13 @@ impl Gate
     fn new(s:&str)->Self
     {
         let v = s.split(" ").collect::<Vec<&str>>();
-        let a = v[0];
+
+        let mut ops = vec![v[0],v[2]];
+        ops.sort();
+
+        let a = ops[0];
         let op = v[1];
-        let b = v[2];
+        let b = ops[1];
         let out = v[4];
 
 //        println!("a:{} op:{} b:{} out:{}",a,op,b,out);
@@ -37,13 +42,6 @@ impl Gate
             _ => panic!("Unknown operator")
         };
         Gate { a:a.to_string(), b:b.to_string(), out:out.to_string(), oper}
-    }
-
-    fn swap(&mut self)
-    {
-        let t = self.a.clone();
-        self.a = self.b.clone();
-        self.b = t;
     }
 
     fn evaluate(&self,va:Option<bool>,vb:Option<bool>)->Option<bool>
@@ -111,14 +109,17 @@ impl Gate
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 struct Data {
-    instr: HashMap<String,Gate>,    
-    vals : HashMap<String,bool>,
+    instr : HashMap<String,Gate>,    
+    vals  : HashMap<String,bool>,
+    instr_b: HashMap<String,Gate>,    
+    vals_b : HashMap<String,bool>,
 }
 
 impl Data {
-    fn new(input: &[String]) -> Self {
+    fn new(input: &[String]) -> Self 
+    {
         let sections: Vec<&[String]> = input.split(|line| line.is_empty()).collect();
         
         let vals = sections[0].iter()
@@ -137,7 +138,9 @@ impl Data {
 
         Data {
             instr,
-            vals
+            vals,
+            instr_b : HashMap::new(),
+            vals_b : HashMap::new(),
         }
     }
 
@@ -155,27 +158,23 @@ impl Data {
         self.vals.insert(n,v);
     }
 
-    fn ok1(&self,line:&[usize]) -> usize
-    {
-        
-        0
-    }
-
     fn number(&self,c:char)->usize
     {
          self.vals
              .iter()
-             .filter(|(k,v)| k.starts_with(c))
-             .map(|z| if *z.1 {1<<z.0[1..].parse::<usize>().unwrap()} else {0})
+             .filter(|(k,&v)| k.starts_with(c) && v)
+             .map(|z| 1<<z.0[1..].parse::<usize>().unwrap())
              .sum()
     }
 
 
     fn count1(&mut self)->usize
     {
-        loop 
+        let mut done = false;
+
+        while !done
         {
-            let mut done = true;
+            done = true;
             let mut update = vec![];
 
             for (_,v) in self.instr.iter()
@@ -197,10 +196,6 @@ impl Data {
             for (v,g) in update.iter()
             {
                 self.set_v(v.clone(),g.unwrap());
-            }
-            if done
-            {
-                break;
             }
         }
 
@@ -224,26 +219,162 @@ impl Data {
         //self.instr.insert(b, t);
     }
 
+    fn name(&self,o:Operator)->String
+    {
+        match o
+        {
+            Operator::And => "AND".to_string(),
+            Operator::Or  => "OR".to_string(),
+            Operator::Xor => "XOR".to_string(),
+        }
+    }
+
+    //Day24
+    //part1: 47666458872582
+
+    fn is(&self,s:String,z:char)->bool
+    {
+        s.starts_with(z)
+    }
+
+    fn check(&mut self,s:Vec<String>)->bool
+    {
+        self.instr = self.instr_b.clone();
+        self.vals = self.vals_b.clone();
+        
+        self.swap(s[0].clone(),s[1].clone());
+        self.swap(s[2].clone(),s[3].clone());
+        self.swap(s[4].clone(),s[5].clone());
+        self.swap(s[6].clone(),s[7].clone());
+        
+        let x = self.number('x');
+        let y = self.number('y');
+
+        let c = self.count1();
+        
+        if x+y==c
+        {
+            let res = s.join(",");
+            println!("{}",res);
+            return true;
+        }
+
+        //self.swap(s[0].clone(),s[1].clone());
+        //self.swap(s[2].clone(),s[3].clone());
+        //self.swap(s[4].clone(),s[5].clone());
+        //self.swap(s[6].clone(),s[7].clone());
+
+        
+        false
+    }
+
     fn count2(&mut self)->String
     {
         let n1 = self.number('x');
         let n2 = self.number('y');
 
-        let mut ss:Vec<String> = self.instr.keys().map(|a| a.clone()).collect::<Vec<String>>();
+        let mut ss : Vec<String> = self.instr.iter()
+                                             .filter(|(_,g)| g.out!="z45" && self.is(g.out.clone(),'z') && g.oper != Operator::Xor)
+                                             .map(|(k,g)| 
+                                                //format!("{} {} {} => {}",g.a.clone(),self.name(g.oper.clone()),g.b.clone(),g.out.clone())
+                                                g.out.clone()
+                                            ).collect::<Vec<String>>();
         ss.sort();
         ss.dedup();
 
-
-        println!("ss:{:?}",ss);
-
-        let v: Vec<_> = self.instr.iter().filter(|a| a.1.oper != Operator::Xor && a.1.out.starts_with("z") ).collect();
-
-        println!("v:{:?}",v);
+        println!("ss:{:#?}",ss);
+        println!("len:{}",ss.len());
 
 
+        let mut qq : Vec<String> = self.instr.iter()
+                                             .filter(|(_,g)| 
+                                             !self.is(g.out.clone(),'z') && 
+                                             !self.is(g.a.clone(),'x') && 
+                                             !self.is(g.a.clone(),'y') &&                                              
+                                             !self.is(g.b.clone(),'x') && 
+                                             !self.is(g.b.clone(),'y') &&                                              
+                                             g.oper == Operator::Xor)
+                                             .map(|(k,g)| 
+                                             //format!("{} {} {} => {}",g.a.clone(),self.name(g.oper.clone()),g.b.clone(),g.out.clone())
+                                             g.out.clone()
+                                        ).collect::<Vec<String>>();
+
+        qq.sort();
+        qq.dedup();
+
+        qq.append(&mut ss);
+
+        println!("qq:{:#?}",qq);
+        println!("len:{}",qq.len());
+
+
+        let outs = self.instr.iter().map(|(k,g)| g.out.clone() ).collect::<Vec<String>>();
+        let mut id=0;
+
+        self.instr_b = self.instr.clone();
+        self.vals_b = self.vals.clone();
+
+
+
+        for a in 0..outs.len()
+        {
+            if !qq.contains(&outs[a])
+            {
+                for b in a+1..outs.len()
+                {
+                    if !qq.contains(&outs[b])
+                    {
+                        if a!=b
+                        {
+                            let mut add = vec![outs[a].clone(),outs[b].clone()];
+                            let mut qa = qq.clone();
+                            qa.append(&mut add);
+                            qa.sort();
+
+                            let mut u=0;
+
+                            for e in qa.into_iter().permutations(8)
+                            {
+                                if self.check(e.clone())
+                                {
+                                    //return e.clone().join(",");                                  
+                                }
+                                u+=1;
+                            }
+
+
+                            //return "".to_string();
+                            
+                            //println!("qa: {}/{} {}",id,outs.len()*outs.len(),u);
+                            id+=1;
+                            
+                        }                        
+                    }
+                }
+             
+            }
+        }
+
+        return "".to_string();
+
+/*
+
+        return "".to_string();
+
+        let mut v: Vec<_> = self.instr.iter().filter(|a| a.1.out.starts_with("z") ).collect();
+
+        let mut oo = vec![];
+        for t in v
+        {
+            let gg = t.1.clone();
+            oo.push((gg.out.clone(),self.name(gg.oper)));
+        }
+
+        oo.sort();
+        println!("v:{:#?}",oo);
         
         //use rand to fill num as 8 distinct random numbers in range 0..ss.len()
-        
+       
         let rr = &mut rand::thread_rng();
 //        rr.gen_range(0..ss.len());
 
@@ -273,6 +404,7 @@ impl Data {
         let des = n1+n2;
 
         println!("n1:{} n2:{} des:{}",n1,n2,des);
+        */
 
         let vals_bkp = self.vals.clone();
         let inst_bkp = self.instr.clone();
@@ -293,6 +425,8 @@ impl Data {
         //dvj,gvj,hrq,ngc,rkg,sgt,z15,z30
         //dvj,gvj,hrq,ngc,rkg,sgt,z15,z30
         //gvj,z30,ngc,z15,rkg,hrq,sgt,dvj
+
+/*
         loop {
             
             self.vals  = vals_bkp.clone();
@@ -317,9 +451,8 @@ impl Data {
              self.swap(ss[num[6]].clone(),ss[num[7]].clone());
 
 
-//            if self.instr.contains_key(&ss[d])
-        
-//              self.instr.get_mut(&ss[d]).unwrap().swap();
+//           if self.instr.contains_key(&ss[d])
+//           self.instr.get_mut(&ss[d]).unwrap().swap();
 
 
                 let c = self.count1();
@@ -374,18 +507,19 @@ impl Data {
                     wrong = cc;
                     best = num.to_vec();
 
-                    /*
+                    
                     println!("des:{:#048b}",des);
                     println!("cnt:{:#048b}",c);
                     println!("xor:{:#048b}",x);
                     println!("ok :{}",cc);
-                    println!("num:{:?}",num);
-                    */
+                    println!("num:{:?}",num);                    
                 }
 
 
 
         }
+*/
+
         "none".to_string()
     }
 
@@ -511,3 +645,1035 @@ fn test3()
 }
     
 
+//dnt,gdf,gwc,jst,z05,z10,z15,z30 - wrong
+
+/*
+
+z30,dnt,jst,z10,z15,gwc,gdf,z05
+z30,dnt,jst,z10,z15,gwc,z05,gdf
+z30,dnt,jst,z15,gdf,z05,gwc,z10
+z30,dnt,jst,z15,gdf,z05,z10,gwc
+z30,dnt,jst,z15,gdf,z10,gwc,z05
+z30,dnt,jst,z15,gdf,z10,z05,gwc
+z30,dnt,jst,z15,gwc,z05,gdf,z10
+z30,dnt,jst,z15,gwc,z05,z10,gdf
+z30,dnt,jst,z15,gwc,z10,gdf,z05
+z30,dnt,jst,z15,gwc,z10,z05,gdf
+z30,dnt,jst,z15,z05,gdf,gwc,z10
+z30,dnt,jst,z15,z05,gdf,z10,gwc
+z30,dnt,jst,z15,z05,gwc,gdf,z10
+z30,dnt,jst,z15,z05,gwc,z10,gdf
+z30,dnt,jst,z15,z10,gdf,gwc,z05
+z30,dnt,jst,z15,z10,gdf,z05,gwc
+z30,dnt,jst,z15,z10,gwc,gdf,z05
+z30,dnt,jst,z15,z10,gwc,z05,gdf
+z30,dnt,z05,gdf,gwc,z10,jst,z15
+z30,dnt,z05,gdf,gwc,z10,z15,jst
+z30,dnt,z05,gdf,gwc,z15,jst,z10
+z30,dnt,z05,gdf,gwc,z15,z10,jst
+z30,dnt,z05,gdf,jst,z10,gwc,z15
+z30,dnt,z05,gdf,jst,z10,z15,gwc
+z30,dnt,z05,gdf,jst,z15,gwc,z10
+z30,dnt,z05,gdf,jst,z15,z10,gwc
+z30,dnt,z05,gdf,z10,gwc,jst,z15
+z30,dnt,z05,gdf,z10,gwc,z15,jst
+z30,dnt,z05,gdf,z10,jst,gwc,z15
+z30,dnt,z05,gdf,z10,jst,z15,gwc
+z30,dnt,z05,gdf,z15,gwc,jst,z10
+z30,dnt,z05,gdf,z15,gwc,z10,jst
+z30,dnt,z05,gdf,z15,jst,gwc,z10
+z30,dnt,z05,gdf,z15,jst,z10,gwc
+z30,dnt,z05,gwc,gdf,z10,jst,z15
+z30,dnt,z05,gwc,gdf,z10,z15,jst
+z30,dnt,z05,gwc,gdf,z15,jst,z10
+z30,dnt,z05,gwc,gdf,z15,z10,jst
+z30,dnt,z05,gwc,jst,z10,gdf,z15
+z30,dnt,z05,gwc,jst,z10,z15,gdf
+z30,dnt,z05,gwc,jst,z15,gdf,z10
+z30,dnt,z05,gwc,jst,z15,z10,gdf
+z30,dnt,z05,gwc,z10,gdf,jst,z15
+z30,dnt,z05,gwc,z10,gdf,z15,jst
+z30,dnt,z05,gwc,z10,jst,gdf,z15
+z30,dnt,z05,gwc,z10,jst,z15,gdf
+z30,dnt,z05,gwc,z15,gdf,jst,z10
+z30,dnt,z05,gwc,z15,gdf,z10,jst
+z30,dnt,z05,gwc,z15,jst,gdf,z10
+z30,dnt,z05,gwc,z15,jst,z10,gdf
+z30,dnt,z05,jst,gdf,z10,gwc,z15
+z30,dnt,z05,jst,gdf,z10,z15,gwc
+z30,dnt,z05,jst,gdf,z15,gwc,z10
+z30,dnt,z05,jst,gdf,z15,z10,gwc
+z30,dnt,z05,jst,gwc,z10,gdf,z15
+z30,dnt,z05,jst,gwc,z10,z15,gdf
+z30,dnt,z05,jst,gwc,z15,gdf,z10
+z30,dnt,z05,jst,gwc,z15,z10,gdf
+z30,dnt,z05,jst,z10,gdf,gwc,z15
+z30,dnt,z05,jst,z10,gdf,z15,gwc
+z30,dnt,z05,jst,z10,gwc,gdf,z15
+z30,dnt,z05,jst,z10,gwc,z15,gdf
+z30,dnt,z05,jst,z15,gdf,gwc,z10
+z30,dnt,z05,jst,z15,gdf,z10,gwc
+z30,dnt,z05,jst,z15,gwc,gdf,z10
+z30,dnt,z05,jst,z15,gwc,z10,gdf
+z30,dnt,z10,gdf,gwc,z05,jst,z15
+z30,dnt,z10,gdf,gwc,z05,z15,jst
+z30,dnt,z10,gdf,gwc,z15,jst,z05
+z30,dnt,z10,gdf,gwc,z15,z05,jst
+z30,dnt,z10,gdf,jst,z05,gwc,z15
+z30,dnt,z10,gdf,jst,z05,z15,gwc
+z30,dnt,z10,gdf,jst,z15,gwc,z05
+z30,dnt,z10,gdf,jst,z15,z05,gwc
+z30,dnt,z10,gdf,z05,gwc,jst,z15
+z30,dnt,z10,gdf,z05,gwc,z15,jst
+z30,dnt,z10,gdf,z05,jst,gwc,z15
+z30,dnt,z10,gdf,z05,jst,z15,gwc
+z30,dnt,z10,gdf,z15,gwc,jst,z05
+z30,dnt,z10,gdf,z15,gwc,z05,jst
+z30,dnt,z10,gdf,z15,jst,gwc,z05
+z30,dnt,z10,gdf,z15,jst,z05,gwc
+z30,dnt,z10,gwc,gdf,z05,jst,z15
+z30,dnt,z10,gwc,gdf,z05,z15,jst
+z30,dnt,z10,gwc,gdf,z15,jst,z05
+z30,dnt,z10,gwc,gdf,z15,z05,jst
+z30,dnt,z10,gwc,jst,z05,gdf,z15
+z30,dnt,z10,gwc,jst,z05,z15,gdf
+z30,dnt,z10,gwc,jst,z15,gdf,z05
+z30,dnt,z10,gwc,jst,z15,z05,gdf
+z30,dnt,z10,gwc,z05,gdf,jst,z15
+z30,dnt,z10,gwc,z05,gdf,z15,jst
+z30,dnt,z10,gwc,z05,jst,gdf,z15
+z30,dnt,z10,gwc,z05,jst,z15,gdf
+z30,dnt,z10,gwc,z15,gdf,jst,z05
+z30,dnt,z10,gwc,z15,gdf,z05,jst
+z30,dnt,z10,gwc,z15,jst,gdf,z05
+z30,dnt,z10,gwc,z15,jst,z05,gdf
+z30,dnt,z10,jst,gdf,z05,gwc,z15
+z30,dnt,z10,jst,gdf,z05,z15,gwc
+z30,dnt,z10,jst,gdf,z15,gwc,z05
+z30,dnt,z10,jst,gdf,z15,z05,gwc
+z30,dnt,z10,jst,gwc,z05,gdf,z15
+z30,dnt,z10,jst,gwc,z05,z15,gdf
+z30,dnt,z10,jst,gwc,z15,gdf,z05
+z30,dnt,z10,jst,gwc,z15,z05,gdf
+z30,dnt,z10,jst,z05,gdf,gwc,z15
+z30,dnt,z10,jst,z05,gdf,z15,gwc
+z30,dnt,z10,jst,z05,gwc,gdf,z15
+z30,dnt,z10,jst,z05,gwc,z15,gdf
+z30,dnt,z10,jst,z15,gdf,gwc,z05
+z30,dnt,z10,jst,z15,gdf,z05,gwc
+z30,dnt,z10,jst,z15,gwc,gdf,z05
+z30,dnt,z10,jst,z15,gwc,z05,gdf
+z30,dnt,z15,gdf,gwc,z05,jst,z10
+z30,dnt,z15,gdf,gwc,z05,z10,jst
+z30,dnt,z15,gdf,gwc,z10,jst,z05
+z30,dnt,z15,gdf,gwc,z10,z05,jst
+z30,dnt,z15,gdf,jst,z05,gwc,z10
+z30,dnt,z15,gdf,jst,z05,z10,gwc
+z30,dnt,z15,gdf,jst,z10,gwc,z05
+z30,dnt,z15,gdf,jst,z10,z05,gwc
+z30,dnt,z15,gdf,z05,gwc,jst,z10
+z30,dnt,z15,gdf,z05,gwc,z10,jst
+z30,dnt,z15,gdf,z05,jst,gwc,z10
+z30,dnt,z15,gdf,z05,jst,z10,gwc
+z30,dnt,z15,gdf,z10,gwc,jst,z05
+z30,dnt,z15,gdf,z10,gwc,z05,jst
+z30,dnt,z15,gdf,z10,jst,gwc,z05
+z30,dnt,z15,gdf,z10,jst,z05,gwc
+z30,dnt,z15,gwc,gdf,z05,jst,z10
+z30,dnt,z15,gwc,gdf,z05,z10,jst
+z30,dnt,z15,gwc,gdf,z10,jst,z05
+z30,dnt,z15,gwc,gdf,z10,z05,jst
+z30,dnt,z15,gwc,jst,z05,gdf,z10
+z30,dnt,z15,gwc,jst,z05,z10,gdf
+z30,dnt,z15,gwc,jst,z10,gdf,z05
+z30,dnt,z15,gwc,jst,z10,z05,gdf
+z30,dnt,z15,gwc,z05,gdf,jst,z10
+z30,dnt,z15,gwc,z05,gdf,z10,jst
+z30,dnt,z15,gwc,z05,jst,gdf,z10
+z30,dnt,z15,gwc,z05,jst,z10,gdf
+z30,dnt,z15,gwc,z10,gdf,jst,z05
+z30,dnt,z15,gwc,z10,gdf,z05,jst
+z30,dnt,z15,gwc,z10,jst,gdf,z05
+z30,dnt,z15,gwc,z10,jst,z05,gdf
+z30,dnt,z15,jst,gdf,z05,gwc,z10
+z30,dnt,z15,jst,gdf,z05,z10,gwc
+z30,dnt,z15,jst,gdf,z10,gwc,z05
+z30,dnt,z15,jst,gdf,z10,z05,gwc
+z30,dnt,z15,jst,gwc,z05,gdf,z10
+z30,dnt,z15,jst,gwc,z05,z10,gdf
+z30,dnt,z15,jst,gwc,z10,gdf,z05
+z30,dnt,z15,jst,gwc,z10,z05,gdf
+z30,dnt,z15,jst,z05,gdf,gwc,z10
+z30,dnt,z15,jst,z05,gdf,z10,gwc
+z30,dnt,z15,jst,z05,gwc,gdf,z10
+z30,dnt,z15,jst,z05,gwc,z10,gdf
+z30,dnt,z15,jst,z10,gdf,gwc,z05
+z30,dnt,z15,jst,z10,gdf,z05,gwc
+z30,dnt,z15,jst,z10,gwc,gdf,z05
+z30,dnt,z15,jst,z10,gwc,z05,gdf
+z30,gdf,dnt,z05,gwc,z10,jst,z15
+z30,gdf,dnt,z05,gwc,z10,z15,jst
+z30,gdf,dnt,z05,gwc,z15,jst,z10
+z30,gdf,dnt,z05,gwc,z15,z10,jst
+z30,gdf,dnt,z05,jst,z10,gwc,z15
+z30,gdf,dnt,z05,jst,z10,z15,gwc
+z30,gdf,dnt,z05,jst,z15,gwc,z10
+z30,gdf,dnt,z05,jst,z15,z10,gwc
+z30,gdf,dnt,z05,z10,gwc,jst,z15
+z30,gdf,dnt,z05,z10,gwc,z15,jst
+z30,gdf,dnt,z05,z10,jst,gwc,z15
+z30,gdf,dnt,z05,z10,jst,z15,gwc
+z30,gdf,dnt,z05,z15,gwc,jst,z10
+z30,gdf,dnt,z05,z15,gwc,z10,jst
+z30,gdf,dnt,z05,z15,jst,gwc,z10
+z30,gdf,dnt,z05,z15,jst,z10,gwc
+z30,gdf,dnt,z10,gwc,z05,jst,z15
+z30,gdf,dnt,z10,gwc,z05,z15,jst
+z30,gdf,dnt,z10,gwc,z15,jst,z05
+z30,gdf,dnt,z10,gwc,z15,z05,jst
+z30,gdf,dnt,z10,jst,z05,gwc,z15
+z30,gdf,dnt,z10,jst,z05,z15,gwc
+z30,gdf,dnt,z10,jst,z15,gwc,z05
+z30,gdf,dnt,z10,jst,z15,z05,gwc
+z30,gdf,dnt,z10,z05,gwc,jst,z15
+z30,gdf,dnt,z10,z05,gwc,z15,jst
+z30,gdf,dnt,z10,z05,jst,gwc,z15
+z30,gdf,dnt,z10,z05,jst,z15,gwc
+z30,gdf,dnt,z10,z15,gwc,jst,z05
+z30,gdf,dnt,z10,z15,gwc,z05,jst
+z30,gdf,dnt,z10,z15,jst,gwc,z05
+z30,gdf,dnt,z10,z15,jst,z05,gwc
+z30,gdf,dnt,z15,gwc,z05,jst,z10
+z30,gdf,dnt,z15,gwc,z05,z10,jst
+z30,gdf,dnt,z15,gwc,z10,jst,z05
+z30,gdf,dnt,z15,gwc,z10,z05,jst
+z30,gdf,dnt,z15,jst,z05,gwc,z10
+z30,gdf,dnt,z15,jst,z05,z10,gwc
+z30,gdf,dnt,z15,jst,z10,gwc,z05
+z30,gdf,dnt,z15,jst,z10,z05,gwc
+z30,gdf,dnt,z15,z05,gwc,jst,z10
+z30,gdf,dnt,z15,z05,gwc,z10,jst
+z30,gdf,dnt,z15,z05,jst,gwc,z10
+z30,gdf,dnt,z15,z05,jst,z10,gwc
+z30,gdf,dnt,z15,z10,gwc,jst,z05
+z30,gdf,dnt,z15,z10,gwc,z05,jst
+z30,gdf,dnt,z15,z10,jst,gwc,z05
+z30,gdf,dnt,z15,z10,jst,z05,gwc
+z30,gdf,gwc,z05,dnt,z10,jst,z15
+z30,gdf,gwc,z05,dnt,z10,z15,jst
+z30,gdf,gwc,z05,dnt,z15,jst,z10
+z30,gdf,gwc,z05,dnt,z15,z10,jst
+z30,gdf,gwc,z05,jst,z10,dnt,z15
+z30,gdf,gwc,z05,jst,z10,z15,dnt
+z30,gdf,gwc,z05,jst,z15,dnt,z10
+z30,gdf,gwc,z05,jst,z15,z10,dnt
+z30,gdf,gwc,z05,z10,dnt,jst,z15
+z30,gdf,gwc,z05,z10,dnt,z15,jst
+z30,gdf,gwc,z05,z10,jst,dnt,z15
+z30,gdf,gwc,z05,z10,jst,z15,dnt
+z30,gdf,gwc,z05,z15,dnt,jst,z10
+z30,gdf,gwc,z05,z15,dnt,z10,jst
+z30,gdf,gwc,z05,z15,jst,dnt,z10
+z30,gdf,gwc,z05,z15,jst,z10,dnt
+z30,gdf,gwc,z10,dnt,z05,jst,z15
+z30,gdf,gwc,z10,dnt,z05,z15,jst
+z30,gdf,gwc,z10,dnt,z15,jst,z05
+z30,gdf,gwc,z10,dnt,z15,z05,jst
+z30,gdf,gwc,z10,jst,z05,dnt,z15
+z30,gdf,gwc,z10,jst,z05,z15,dnt
+z30,gdf,gwc,z10,jst,z15,dnt,z05
+z30,gdf,gwc,z10,jst,z15,z05,dnt
+z30,gdf,gwc,z10,z05,dnt,jst,z15
+z30,gdf,gwc,z10,z05,dnt,z15,jst
+z30,gdf,gwc,z10,z05,jst,dnt,z15
+z30,gdf,gwc,z10,z05,jst,z15,dnt
+z30,gdf,gwc,z10,z15,dnt,jst,z05
+z30,gdf,gwc,z10,z15,dnt,z05,jst
+z30,gdf,gwc,z10,z15,jst,dnt,z05
+z30,gdf,gwc,z10,z15,jst,z05,dnt
+z30,gdf,gwc,z15,dnt,z05,jst,z10
+z30,gdf,gwc,z15,dnt,z05,z10,jst
+z30,gdf,gwc,z15,dnt,z10,jst,z05
+z30,gdf,gwc,z15,dnt,z10,z05,jst
+z30,gdf,gwc,z15,jst,z05,dnt,z10
+z30,gdf,gwc,z15,jst,z05,z10,dnt
+z30,gdf,gwc,z15,jst,z10,dnt,z05
+z30,gdf,gwc,z15,jst,z10,z05,dnt
+z30,gdf,gwc,z15,z05,dnt,jst,z10
+z30,gdf,gwc,z15,z05,dnt,z10,jst
+z30,gdf,gwc,z15,z05,jst,dnt,z10
+z30,gdf,gwc,z15,z05,jst,z10,dnt
+z30,gdf,gwc,z15,z10,dnt,jst,z05
+z30,gdf,gwc,z15,z10,dnt,z05,jst
+z30,gdf,gwc,z15,z10,jst,dnt,z05
+z30,gdf,gwc,z15,z10,jst,z05,dnt
+z30,gdf,jst,z05,dnt,z10,gwc,z15
+z30,gdf,jst,z05,dnt,z10,z15,gwc
+z30,gdf,jst,z05,dnt,z15,gwc,z10
+z30,gdf,jst,z05,dnt,z15,z10,gwc
+z30,gdf,jst,z05,gwc,z10,dnt,z15
+z30,gdf,jst,z05,gwc,z10,z15,dnt
+z30,gdf,jst,z05,gwc,z15,dnt,z10
+z30,gdf,jst,z05,gwc,z15,z10,dnt
+z30,gdf,jst,z05,z10,dnt,gwc,z15
+z30,gdf,jst,z05,z10,dnt,z15,gwc
+z30,gdf,jst,z05,z10,gwc,dnt,z15
+z30,gdf,jst,z05,z10,gwc,z15,dnt
+z30,gdf,jst,z05,z15,dnt,gwc,z10
+z30,gdf,jst,z05,z15,dnt,z10,gwc
+z30,gdf,jst,z05,z15,gwc,dnt,z10
+z30,gdf,jst,z05,z15,gwc,z10,dnt
+z30,gdf,jst,z10,dnt,z05,gwc,z15
+z30,gdf,jst,z10,dnt,z05,z15,gwc
+z30,gdf,jst,z10,dnt,z15,gwc,z05
+z30,gdf,jst,z10,dnt,z15,z05,gwc
+z30,gdf,jst,z10,gwc,z05,dnt,z15
+z30,gdf,jst,z10,gwc,z05,z15,dnt
+z30,gdf,jst,z10,gwc,z15,dnt,z05
+z30,gdf,jst,z10,gwc,z15,z05,dnt
+z30,gdf,jst,z10,z05,dnt,gwc,z15
+z30,gdf,jst,z10,z05,dnt,z15,gwc
+z30,gdf,jst,z10,z05,gwc,dnt,z15
+z30,gdf,jst,z10,z05,gwc,z15,dnt
+z30,gdf,jst,z10,z15,dnt,gwc,z05
+z30,gdf,jst,z10,z15,dnt,z05,gwc
+z30,gdf,jst,z10,z15,gwc,dnt,z05
+z30,gdf,jst,z10,z15,gwc,z05,dnt
+z30,gdf,jst,z15,dnt,z05,gwc,z10
+z30,gdf,jst,z15,dnt,z05,z10,gwc
+z30,gdf,jst,z15,dnt,z10,gwc,z05
+z30,gdf,jst,z15,dnt,z10,z05,gwc
+z30,gdf,jst,z15,gwc,z05,dnt,z10
+z30,gdf,jst,z15,gwc,z05,z10,dnt
+z30,gdf,jst,z15,gwc,z10,dnt,z05
+z30,gdf,jst,z15,gwc,z10,z05,dnt
+z30,gdf,jst,z15,z05,dnt,gwc,z10
+z30,gdf,jst,z15,z05,dnt,z10,gwc
+z30,gdf,jst,z15,z05,gwc,dnt,z10
+z30,gdf,jst,z15,z05,gwc,z10,dnt
+z30,gdf,jst,z15,z10,dnt,gwc,z05
+z30,gdf,jst,z15,z10,dnt,z05,gwc
+z30,gdf,jst,z15,z10,gwc,dnt,z05
+z30,gdf,jst,z15,z10,gwc,z05,dnt
+z30,gdf,z05,dnt,gwc,z10,jst,z15
+z30,gdf,z05,dnt,gwc,z10,z15,jst
+z30,gdf,z05,dnt,gwc,z15,jst,z10
+z30,gdf,z05,dnt,gwc,z15,z10,jst
+z30,gdf,z05,dnt,jst,z10,gwc,z15
+z30,gdf,z05,dnt,jst,z10,z15,gwc
+z30,gdf,z05,dnt,jst,z15,gwc,z10
+z30,gdf,z05,dnt,jst,z15,z10,gwc
+z30,gdf,z05,dnt,z10,gwc,jst,z15
+z30,gdf,z05,dnt,z10,gwc,z15,jst
+z30,gdf,z05,dnt,z10,jst,gwc,z15
+z30,gdf,z05,dnt,z10,jst,z15,gwc
+z30,gdf,z05,dnt,z15,gwc,jst,z10
+z30,gdf,z05,dnt,z15,gwc,z10,jst
+z30,gdf,z05,dnt,z15,jst,gwc,z10
+z30,gdf,z05,dnt,z15,jst,z10,gwc
+z30,gdf,z05,gwc,dnt,z10,jst,z15
+z30,gdf,z05,gwc,dnt,z10,z15,jst
+z30,gdf,z05,gwc,dnt,z15,jst,z10
+z30,gdf,z05,gwc,dnt,z15,z10,jst
+z30,gdf,z05,gwc,jst,z10,dnt,z15
+z30,gdf,z05,gwc,jst,z10,z15,dnt
+z30,gdf,z05,gwc,jst,z15,dnt,z10
+z30,gdf,z05,gwc,jst,z15,z10,dnt
+z30,gdf,z05,gwc,z10,dnt,jst,z15
+z30,gdf,z05,gwc,z10,dnt,z15,jst
+z30,gdf,z05,gwc,z10,jst,dnt,z15
+z30,gdf,z05,gwc,z10,jst,z15,dnt
+z30,gdf,z05,gwc,z15,dnt,jst,z10
+z30,gdf,z05,gwc,z15,dnt,z10,jst
+z30,gdf,z05,gwc,z15,jst,dnt,z10
+z30,gdf,z05,gwc,z15,jst,z10,dnt
+z30,gdf,z05,jst,dnt,z10,gwc,z15
+z30,gdf,z05,jst,dnt,z10,z15,gwc
+z30,gdf,z05,jst,dnt,z15,gwc,z10
+z30,gdf,z05,jst,dnt,z15,z10,gwc
+z30,gdf,z05,jst,gwc,z10,dnt,z15
+z30,gdf,z05,jst,gwc,z10,z15,dnt
+z30,gdf,z05,jst,gwc,z15,dnt,z10
+z30,gdf,z05,jst,gwc,z15,z10,dnt
+z30,gdf,z05,jst,z10,dnt,gwc,z15
+z30,gdf,z05,jst,z10,dnt,z15,gwc
+z30,gdf,z05,jst,z10,gwc,dnt,z15
+z30,gdf,z05,jst,z10,gwc,z15,dnt
+z30,gdf,z05,jst,z15,dnt,gwc,z10
+z30,gdf,z05,jst,z15,dnt,z10,gwc
+z30,gdf,z05,jst,z15,gwc,dnt,z10
+z30,gdf,z05,jst,z15,gwc,z10,dnt
+z30,gdf,z10,dnt,gwc,z05,jst,z15
+z30,gdf,z10,dnt,gwc,z05,z15,jst
+z30,gdf,z10,dnt,gwc,z15,jst,z05
+z30,gdf,z10,dnt,gwc,z15,z05,jst
+z30,gdf,z10,dnt,jst,z05,gwc,z15
+z30,gdf,z10,dnt,jst,z05,z15,gwc
+z30,gdf,z10,dnt,jst,z15,gwc,z05
+z30,gdf,z10,dnt,jst,z15,z05,gwc
+z30,gdf,z10,dnt,z05,gwc,jst,z15
+z30,gdf,z10,dnt,z05,gwc,z15,jst
+z30,gdf,z10,dnt,z05,jst,gwc,z15
+z30,gdf,z10,dnt,z05,jst,z15,gwc
+z30,gdf,z10,dnt,z15,gwc,jst,z05
+z30,gdf,z10,dnt,z15,gwc,z05,jst
+z30,gdf,z10,dnt,z15,jst,gwc,z05
+z30,gdf,z10,dnt,z15,jst,z05,gwc
+z30,gdf,z10,gwc,dnt,z05,jst,z15
+z30,gdf,z10,gwc,dnt,z05,z15,jst
+z30,gdf,z10,gwc,dnt,z15,jst,z05
+z30,gdf,z10,gwc,dnt,z15,z05,jst
+z30,gdf,z10,gwc,jst,z05,dnt,z15
+z30,gdf,z10,gwc,jst,z05,z15,dnt
+z30,gdf,z10,gwc,jst,z15,dnt,z05
+z30,gdf,z10,gwc,jst,z15,z05,dnt
+z30,gdf,z10,gwc,z05,dnt,jst,z15
+z30,gdf,z10,gwc,z05,dnt,z15,jst
+z30,gdf,z10,gwc,z05,jst,dnt,z15
+z30,gdf,z10,gwc,z05,jst,z15,dnt
+z30,gdf,z10,gwc,z15,dnt,jst,z05
+z30,gdf,z10,gwc,z15,dnt,z05,jst
+z30,gdf,z10,gwc,z15,jst,dnt,z05
+z30,gdf,z10,gwc,z15,jst,z05,dnt
+z30,gdf,z10,jst,dnt,z05,gwc,z15
+z30,gdf,z10,jst,dnt,z05,z15,gwc
+z30,gdf,z10,jst,dnt,z15,gwc,z05
+z30,gdf,z10,jst,dnt,z15,z05,gwc
+z30,gdf,z10,jst,gwc,z05,dnt,z15
+z30,gdf,z10,jst,gwc,z05,z15,dnt
+z30,gdf,z10,jst,gwc,z15,dnt,z05
+z30,gdf,z10,jst,gwc,z15,z05,dnt
+z30,gdf,z10,jst,z05,dnt,gwc,z15
+z30,gdf,z10,jst,z05,dnt,z15,gwc
+z30,gdf,z10,jst,z05,gwc,dnt,z15
+z30,gdf,z10,jst,z05,gwc,z15,dnt
+z30,gdf,z10,jst,z15,dnt,gwc,z05
+z30,gdf,z10,jst,z15,dnt,z05,gwc
+z30,gdf,z10,jst,z15,gwc,dnt,z05
+z30,gdf,z10,jst,z15,gwc,z05,dnt
+z30,gdf,z15,dnt,gwc,z05,jst,z10
+z30,gdf,z15,dnt,gwc,z05,z10,jst
+z30,gdf,z15,dnt,gwc,z10,jst,z05
+z30,gdf,z15,dnt,gwc,z10,z05,jst
+z30,gdf,z15,dnt,jst,z05,gwc,z10
+z30,gdf,z15,dnt,jst,z05,z10,gwc
+z30,gdf,z15,dnt,jst,z10,gwc,z05
+z30,gdf,z15,dnt,jst,z10,z05,gwc
+z30,gdf,z15,dnt,z05,gwc,jst,z10
+z30,gdf,z15,dnt,z05,gwc,z10,jst
+z30,gdf,z15,dnt,z05,jst,gwc,z10
+z30,gdf,z15,dnt,z05,jst,z10,gwc
+z30,gdf,z15,dnt,z10,gwc,jst,z05
+z30,gdf,z15,dnt,z10,gwc,z05,jst
+z30,gdf,z15,dnt,z10,jst,gwc,z05
+z30,gdf,z15,dnt,z10,jst,z05,gwc
+z30,gdf,z15,gwc,dnt,z05,jst,z10
+z30,gdf,z15,gwc,dnt,z05,z10,jst
+z30,gdf,z15,gwc,dnt,z10,jst,z05
+z30,gdf,z15,gwc,dnt,z10,z05,jst
+z30,gdf,z15,gwc,jst,z05,dnt,z10
+z30,gdf,z15,gwc,jst,z05,z10,dnt
+z30,gdf,z15,gwc,jst,z10,dnt,z05
+z30,gdf,z15,gwc,jst,z10,z05,dnt
+z30,gdf,z15,gwc,z05,dnt,jst,z10
+z30,gdf,z15,gwc,z05,dnt,z10,jst
+z30,gdf,z15,gwc,z05,jst,dnt,z10
+z30,gdf,z15,gwc,z05,jst,z10,dnt
+z30,gdf,z15,gwc,z10,dnt,jst,z05
+z30,gdf,z15,gwc,z10,dnt,z05,jst
+z30,gdf,z15,gwc,z10,jst,dnt,z05
+z30,gdf,z15,gwc,z10,jst,z05,dnt
+z30,gdf,z15,jst,dnt,z05,gwc,z10
+z30,gdf,z15,jst,dnt,z05,z10,gwc
+z30,gdf,z15,jst,dnt,z10,gwc,z05
+z30,gdf,z15,jst,dnt,z10,z05,gwc
+z30,gdf,z15,jst,gwc,z05,dnt,z10
+z30,gdf,z15,jst,gwc,z05,z10,dnt
+z30,gdf,z15,jst,gwc,z10,dnt,z05
+z30,gdf,z15,jst,gwc,z10,z05,dnt
+z30,gdf,z15,jst,z05,dnt,gwc,z10
+z30,gdf,z15,jst,z05,dnt,z10,gwc
+z30,gdf,z15,jst,z05,gwc,dnt,z10
+z30,gdf,z15,jst,z05,gwc,z10,dnt
+z30,gdf,z15,jst,z10,dnt,gwc,z05
+z30,gdf,z15,jst,z10,dnt,z05,gwc
+z30,gdf,z15,jst,z10,gwc,dnt,z05
+z30,gdf,z15,jst,z10,gwc,z05,dnt
+z30,gwc,dnt,z05,gdf,z10,jst,z15
+z30,gwc,dnt,z05,gdf,z10,z15,jst
+z30,gwc,dnt,z05,gdf,z15,jst,z10
+z30,gwc,dnt,z05,gdf,z15,z10,jst
+z30,gwc,dnt,z05,jst,z10,gdf,z15
+z30,gwc,dnt,z05,jst,z10,z15,gdf
+z30,gwc,dnt,z05,jst,z15,gdf,z10
+z30,gwc,dnt,z05,jst,z15,z10,gdf
+z30,gwc,dnt,z05,z10,gdf,jst,z15
+z30,gwc,dnt,z05,z10,gdf,z15,jst
+z30,gwc,dnt,z05,z10,jst,gdf,z15
+z30,gwc,dnt,z05,z10,jst,z15,gdf
+z30,gwc,dnt,z05,z15,gdf,jst,z10
+z30,gwc,dnt,z05,z15,gdf,z10,jst
+z30,gwc,dnt,z05,z15,jst,gdf,z10
+z30,gwc,dnt,z05,z15,jst,z10,gdf
+z30,gwc,dnt,z10,gdf,z05,jst,z15
+z30,gwc,dnt,z10,gdf,z05,z15,jst
+z30,gwc,dnt,z10,gdf,z15,jst,z05
+z30,gwc,dnt,z10,gdf,z15,z05,jst
+z30,gwc,dnt,z10,jst,z05,gdf,z15
+z30,gwc,dnt,z10,jst,z05,z15,gdf
+z30,gwc,dnt,z10,jst,z15,gdf,z05
+z30,gwc,dnt,z10,jst,z15,z05,gdf
+z30,gwc,dnt,z10,z05,gdf,jst,z15
+z30,gwc,dnt,z10,z05,gdf,z15,jst
+z30,gwc,dnt,z10,z05,jst,gdf,z15
+z30,gwc,dnt,z10,z05,jst,z15,gdf
+z30,gwc,dnt,z10,z15,gdf,jst,z05
+z30,gwc,dnt,z10,z15,gdf,z05,jst
+z30,gwc,dnt,z10,z15,jst,gdf,z05
+z30,gwc,dnt,z10,z15,jst,z05,gdf
+z30,gwc,dnt,z15,gdf,z05,jst,z10
+z30,gwc,dnt,z15,gdf,z05,z10,jst
+z30,gwc,dnt,z15,gdf,z10,jst,z05
+z30,gwc,dnt,z15,gdf,z10,z05,jst
+z30,gwc,dnt,z15,jst,z05,gdf,z10
+z30,gwc,dnt,z15,jst,z05,z10,gdf
+z30,gwc,dnt,z15,jst,z10,gdf,z05
+z30,gwc,dnt,z15,jst,z10,z05,gdf
+z30,gwc,dnt,z15,z05,gdf,jst,z10
+z30,gwc,dnt,z15,z05,gdf,z10,jst
+z30,gwc,dnt,z15,z05,jst,gdf,z10
+z30,gwc,dnt,z15,z05,jst,z10,gdf
+z30,gwc,dnt,z15,z10,gdf,jst,z05
+z30,gwc,dnt,z15,z10,gdf,z05,jst
+z30,gwc,dnt,z15,z10,jst,gdf,z05
+z30,gwc,dnt,z15,z10,jst,z05,gdf
+z30,gwc,gdf,z05,dnt,z10,jst,z15
+z30,gwc,gdf,z05,dnt,z10,z15,jst
+z30,gwc,gdf,z05,dnt,z15,jst,z10
+z30,gwc,gdf,z05,dnt,z15,z10,jst
+z30,gwc,gdf,z05,jst,z10,dnt,z15
+z30,gwc,gdf,z05,jst,z10,z15,dnt
+z30,gwc,gdf,z05,jst,z15,dnt,z10
+z30,gwc,gdf,z05,jst,z15,z10,dnt
+z30,gwc,gdf,z05,z10,dnt,jst,z15
+z30,gwc,gdf,z05,z10,dnt,z15,jst
+z30,gwc,gdf,z05,z10,jst,dnt,z15
+z30,gwc,gdf,z05,z10,jst,z15,dnt
+z30,gwc,gdf,z05,z15,dnt,jst,z10
+z30,gwc,gdf,z05,z15,dnt,z10,jst
+z30,gwc,gdf,z05,z15,jst,dnt,z10
+z30,gwc,gdf,z05,z15,jst,z10,dnt
+z30,gwc,gdf,z10,dnt,z05,jst,z15
+z30,gwc,gdf,z10,dnt,z05,z15,jst
+z30,gwc,gdf,z10,dnt,z15,jst,z05
+z30,gwc,gdf,z10,dnt,z15,z05,jst
+z30,gwc,gdf,z10,jst,z05,dnt,z15
+z30,gwc,gdf,z10,jst,z05,z15,dnt
+z30,gwc,gdf,z10,jst,z15,dnt,z05
+z30,gwc,gdf,z10,jst,z15,z05,dnt
+z30,gwc,gdf,z10,z05,dnt,jst,z15
+z30,gwc,gdf,z10,z05,dnt,z15,jst
+z30,gwc,gdf,z10,z05,jst,dnt,z15
+z30,gwc,gdf,z10,z05,jst,z15,dnt
+z30,gwc,gdf,z10,z15,dnt,jst,z05
+z30,gwc,gdf,z10,z15,dnt,z05,jst
+z30,gwc,gdf,z10,z15,jst,dnt,z05
+z30,gwc,gdf,z10,z15,jst,z05,dnt
+z30,gwc,gdf,z15,dnt,z05,jst,z10
+z30,gwc,gdf,z15,dnt,z05,z10,jst
+z30,gwc,gdf,z15,dnt,z10,jst,z05
+z30,gwc,gdf,z15,dnt,z10,z05,jst
+z30,gwc,gdf,z15,jst,z05,dnt,z10
+z30,gwc,gdf,z15,jst,z05,z10,dnt
+z30,gwc,gdf,z15,jst,z10,dnt,z05
+z30,gwc,gdf,z15,jst,z10,z05,dnt
+z30,gwc,gdf,z15,z05,dnt,jst,z10
+z30,gwc,gdf,z15,z05,dnt,z10,jst
+z30,gwc,gdf,z15,z05,jst,dnt,z10
+z30,gwc,gdf,z15,z05,jst,z10,dnt
+z30,gwc,gdf,z15,z10,dnt,jst,z05
+z30,gwc,gdf,z15,z10,dnt,z05,jst
+z30,gwc,gdf,z15,z10,jst,dnt,z05
+z30,gwc,gdf,z15,z10,jst,z05,dnt
+z30,gwc,jst,z05,dnt,z10,gdf,z15
+z30,gwc,jst,z05,dnt,z10,z15,gdf
+z30,gwc,jst,z05,dnt,z15,gdf,z10
+z30,gwc,jst,z05,dnt,z15,z10,gdf
+z30,gwc,jst,z05,gdf,z10,dnt,z15
+z30,gwc,jst,z05,gdf,z10,z15,dnt
+z30,gwc,jst,z05,gdf,z15,dnt,z10
+z30,gwc,jst,z05,gdf,z15,z10,dnt
+z30,gwc,jst,z05,z10,dnt,gdf,z15
+z30,gwc,jst,z05,z10,dnt,z15,gdf
+z30,gwc,jst,z05,z10,gdf,dnt,z15
+z30,gwc,jst,z05,z10,gdf,z15,dnt
+z30,gwc,jst,z05,z15,dnt,gdf,z10
+z30,gwc,jst,z05,z15,dnt,z10,gdf
+z30,gwc,jst,z05,z15,gdf,dnt,z10
+z30,gwc,jst,z05,z15,gdf,z10,dnt
+z30,gwc,jst,z10,dnt,z05,gdf,z15
+z30,gwc,jst,z10,dnt,z05,z15,gdf
+z30,gwc,jst,z10,dnt,z15,gdf,z05
+z30,gwc,jst,z10,dnt,z15,z05,gdf
+z30,gwc,jst,z10,gdf,z05,dnt,z15
+z30,gwc,jst,z10,gdf,z05,z15,dnt
+z30,gwc,jst,z10,gdf,z15,dnt,z05
+z30,gwc,jst,z10,gdf,z15,z05,dnt
+z30,gwc,jst,z10,z05,dnt,gdf,z15
+z30,gwc,jst,z10,z05,dnt,z15,gdf
+z30,gwc,jst,z10,z05,gdf,dnt,z15
+z30,gwc,jst,z10,z05,gdf,z15,dnt
+z30,gwc,jst,z10,z15,dnt,gdf,z05
+z30,gwc,jst,z10,z15,dnt,z05,gdf
+z30,gwc,jst,z10,z15,gdf,dnt,z05
+z30,gwc,jst,z10,z15,gdf,z05,dnt
+z30,gwc,jst,z15,dnt,z05,gdf,z10
+z30,gwc,jst,z15,dnt,z05,z10,gdf
+z30,gwc,jst,z15,dnt,z10,gdf,z05
+z30,gwc,jst,z15,dnt,z10,z05,gdf
+z30,gwc,jst,z15,gdf,z05,dnt,z10
+z30,gwc,jst,z15,gdf,z05,z10,dnt
+z30,gwc,jst,z15,gdf,z10,dnt,z05
+z30,gwc,jst,z15,gdf,z10,z05,dnt
+z30,gwc,jst,z15,z05,dnt,gdf,z10
+z30,gwc,jst,z15,z05,dnt,z10,gdf
+z30,gwc,jst,z15,z05,gdf,dnt,z10
+z30,gwc,jst,z15,z05,gdf,z10,dnt
+z30,gwc,jst,z15,z10,dnt,gdf,z05
+z30,gwc,jst,z15,z10,dnt,z05,gdf
+z30,gwc,jst,z15,z10,gdf,dnt,z05
+z30,gwc,jst,z15,z10,gdf,z05,dnt
+z30,gwc,z05,dnt,gdf,z10,jst,z15
+z30,gwc,z05,dnt,gdf,z10,z15,jst
+z30,gwc,z05,dnt,gdf,z15,jst,z10
+z30,gwc,z05,dnt,gdf,z15,z10,jst
+z30,gwc,z05,dnt,jst,z10,gdf,z15
+z30,gwc,z05,dnt,jst,z10,z15,gdf
+z30,gwc,z05,dnt,jst,z15,gdf,z10
+z30,gwc,z05,dnt,jst,z15,z10,gdf
+z30,gwc,z05,dnt,z10,gdf,jst,z15
+z30,gwc,z05,dnt,z10,gdf,z15,jst
+z30,gwc,z05,dnt,z10,jst,gdf,z15
+z30,gwc,z05,dnt,z10,jst,z15,gdf
+z30,gwc,z05,dnt,z15,gdf,jst,z10
+z30,gwc,z05,dnt,z15,gdf,z10,jst
+z30,gwc,z05,dnt,z15,jst,gdf,z10
+z30,gwc,z05,dnt,z15,jst,z10,gdf
+z30,gwc,z05,gdf,dnt,z10,jst,z15
+z30,gwc,z05,gdf,dnt,z10,z15,jst
+z30,gwc,z05,gdf,dnt,z15,jst,z10
+z30,gwc,z05,gdf,dnt,z15,z10,jst
+z30,gwc,z05,gdf,jst,z10,dnt,z15
+z30,gwc,z05,gdf,jst,z10,z15,dnt
+z30,gwc,z05,gdf,jst,z15,dnt,z10
+z30,gwc,z05,gdf,jst,z15,z10,dnt
+z30,gwc,z05,gdf,z10,dnt,jst,z15
+z30,gwc,z05,gdf,z10,dnt,z15,jst
+z30,gwc,z05,gdf,z10,jst,dnt,z15
+z30,gwc,z05,gdf,z10,jst,z15,dnt
+z30,gwc,z05,gdf,z15,dnt,jst,z10
+z30,gwc,z05,gdf,z15,dnt,z10,jst
+z30,gwc,z05,gdf,z15,jst,dnt,z10
+z30,gwc,z05,gdf,z15,jst,z10,dnt
+z30,gwc,z05,jst,dnt,z10,gdf,z15
+z30,gwc,z05,jst,dnt,z10,z15,gdf
+z30,gwc,z05,jst,dnt,z15,gdf,z10
+z30,gwc,z05,jst,dnt,z15,z10,gdf
+z30,gwc,z05,jst,gdf,z10,dnt,z15
+z30,gwc,z05,jst,gdf,z10,z15,dnt
+z30,gwc,z05,jst,gdf,z15,dnt,z10
+z30,gwc,z05,jst,gdf,z15,z10,dnt
+z30,gwc,z05,jst,z10,dnt,gdf,z15
+z30,gwc,z05,jst,z10,dnt,z15,gdf
+z30,gwc,z05,jst,z10,gdf,dnt,z15
+z30,gwc,z05,jst,z10,gdf,z15,dnt
+z30,gwc,z05,jst,z15,dnt,gdf,z10
+z30,gwc,z05,jst,z15,dnt,z10,gdf
+z30,gwc,z05,jst,z15,gdf,dnt,z10
+z30,gwc,z05,jst,z15,gdf,z10,dnt
+z30,gwc,z10,dnt,gdf,z05,jst,z15
+z30,gwc,z10,dnt,gdf,z05,z15,jst
+z30,gwc,z10,dnt,gdf,z15,jst,z05
+z30,gwc,z10,dnt,gdf,z15,z05,jst
+z30,gwc,z10,dnt,jst,z05,gdf,z15
+z30,gwc,z10,dnt,jst,z05,z15,gdf
+z30,gwc,z10,dnt,jst,z15,gdf,z05
+z30,gwc,z10,dnt,jst,z15,z05,gdf
+z30,gwc,z10,dnt,z05,gdf,jst,z15
+z30,gwc,z10,dnt,z05,gdf,z15,jst
+z30,gwc,z10,dnt,z05,jst,gdf,z15
+z30,gwc,z10,dnt,z05,jst,z15,gdf
+z30,gwc,z10,dnt,z15,gdf,jst,z05
+z30,gwc,z10,dnt,z15,gdf,z05,jst
+z30,gwc,z10,dnt,z15,jst,gdf,z05
+z30,gwc,z10,dnt,z15,jst,z05,gdf
+z30,gwc,z10,gdf,dnt,z05,jst,z15
+z30,gwc,z10,gdf,dnt,z05,z15,jst
+z30,gwc,z10,gdf,dnt,z15,jst,z05
+z30,gwc,z10,gdf,dnt,z15,z05,jst
+z30,gwc,z10,gdf,jst,z05,dnt,z15
+z30,gwc,z10,gdf,jst,z05,z15,dnt
+z30,gwc,z10,gdf,jst,z15,dnt,z05
+z30,gwc,z10,gdf,jst,z15,z05,dnt
+z30,gwc,z10,gdf,z05,dnt,jst,z15
+z30,gwc,z10,gdf,z05,dnt,z15,jst
+z30,gwc,z10,gdf,z05,jst,dnt,z15
+z30,gwc,z10,gdf,z05,jst,z15,dnt
+z30,gwc,z10,gdf,z15,dnt,jst,z05
+z30,gwc,z10,gdf,z15,dnt,z05,jst
+z30,gwc,z10,gdf,z15,jst,dnt,z05
+z30,gwc,z10,gdf,z15,jst,z05,dnt
+z30,gwc,z10,jst,dnt,z05,gdf,z15
+z30,gwc,z10,jst,dnt,z05,z15,gdf
+z30,gwc,z10,jst,dnt,z15,gdf,z05
+z30,gwc,z10,jst,dnt,z15,z05,gdf
+z30,gwc,z10,jst,gdf,z05,dnt,z15
+z30,gwc,z10,jst,gdf,z05,z15,dnt
+z30,gwc,z10,jst,gdf,z15,dnt,z05
+z30,gwc,z10,jst,gdf,z15,z05,dnt
+z30,gwc,z10,jst,z05,dnt,gdf,z15
+z30,gwc,z10,jst,z05,dnt,z15,gdf
+z30,gwc,z10,jst,z05,gdf,dnt,z15
+z30,gwc,z10,jst,z05,gdf,z15,dnt
+z30,gwc,z10,jst,z15,dnt,gdf,z05
+z30,gwc,z10,jst,z15,dnt,z05,gdf
+z30,gwc,z10,jst,z15,gdf,dnt,z05
+z30,gwc,z10,jst,z15,gdf,z05,dnt
+z30,gwc,z15,dnt,gdf,z05,jst,z10
+z30,gwc,z15,dnt,gdf,z05,z10,jst
+z30,gwc,z15,dnt,gdf,z10,jst,z05
+z30,gwc,z15,dnt,gdf,z10,z05,jst
+z30,gwc,z15,dnt,jst,z05,gdf,z10
+z30,gwc,z15,dnt,jst,z05,z10,gdf
+z30,gwc,z15,dnt,jst,z10,gdf,z05
+z30,gwc,z15,dnt,jst,z10,z05,gdf
+z30,gwc,z15,dnt,z05,gdf,jst,z10
+z30,gwc,z15,dnt,z05,gdf,z10,jst
+z30,gwc,z15,dnt,z05,jst,gdf,z10
+z30,gwc,z15,dnt,z05,jst,z10,gdf
+z30,gwc,z15,dnt,z10,gdf,jst,z05
+z30,gwc,z15,dnt,z10,gdf,z05,jst
+z30,gwc,z15,dnt,z10,jst,gdf,z05
+z30,gwc,z15,dnt,z10,jst,z05,gdf
+z30,gwc,z15,gdf,dnt,z05,jst,z10
+z30,gwc,z15,gdf,dnt,z05,z10,jst
+z30,gwc,z15,gdf,dnt,z10,jst,z05
+z30,gwc,z15,gdf,dnt,z10,z05,jst
+z30,gwc,z15,gdf,jst,z05,dnt,z10
+z30,gwc,z15,gdf,jst,z05,z10,dnt
+z30,gwc,z15,gdf,jst,z10,dnt,z05
+z30,gwc,z15,gdf,jst,z10,z05,dnt
+z30,gwc,z15,gdf,z05,dnt,jst,z10
+z30,gwc,z15,gdf,z05,dnt,z10,jst
+z30,gwc,z15,gdf,z05,jst,dnt,z10
+z30,gwc,z15,gdf,z05,jst,z10,dnt
+z30,gwc,z15,gdf,z10,dnt,jst,z05
+z30,gwc,z15,gdf,z10,dnt,z05,jst
+z30,gwc,z15,gdf,z10,jst,dnt,z05
+z30,gwc,z15,gdf,z10,jst,z05,dnt
+z30,gwc,z15,jst,dnt,z05,gdf,z10
+z30,gwc,z15,jst,dnt,z05,z10,gdf
+z30,gwc,z15,jst,dnt,z10,gdf,z05
+z30,gwc,z15,jst,dnt,z10,z05,gdf
+z30,gwc,z15,jst,gdf,z05,dnt,z10
+z30,gwc,z15,jst,gdf,z05,z10,dnt
+z30,gwc,z15,jst,gdf,z10,dnt,z05
+z30,gwc,z15,jst,gdf,z10,z05,dnt
+z30,gwc,z15,jst,z05,dnt,gdf,z10
+z30,gwc,z15,jst,z05,dnt,z10,gdf
+z30,gwc,z15,jst,z05,gdf,dnt,z10
+z30,gwc,z15,jst,z05,gdf,z10,dnt
+z30,gwc,z15,jst,z10,dnt,gdf,z05
+z30,gwc,z15,jst,z10,dnt,z05,gdf
+z30,gwc,z15,jst,z10,gdf,dnt,z05
+z30,gwc,z15,jst,z10,gdf,z05,dnt
+z30,jst,dnt,z05,gdf,z10,gwc,z15
+z30,jst,dnt,z05,gdf,z10,z15,gwc
+z30,jst,dnt,z05,gdf,z15,gwc,z10
+z30,jst,dnt,z05,gdf,z15,z10,gwc
+z30,jst,dnt,z05,gwc,z10,gdf,z15
+z30,jst,dnt,z05,gwc,z10,z15,gdf
+z30,jst,dnt,z05,gwc,z15,gdf,z10
+z30,jst,dnt,z05,gwc,z15,z10,gdf
+z30,jst,dnt,z05,z10,gdf,gwc,z15
+z30,jst,dnt,z05,z10,gdf,z15,gwc
+z30,jst,dnt,z05,z10,gwc,gdf,z15
+z30,jst,dnt,z05,z10,gwc,z15,gdf
+z30,jst,dnt,z05,z15,gdf,gwc,z10
+z30,jst,dnt,z05,z15,gdf,z10,gwc
+z30,jst,dnt,z05,z15,gwc,gdf,z10
+z30,jst,dnt,z05,z15,gwc,z10,gdf
+z30,jst,dnt,z10,gdf,z05,gwc,z15
+z30,jst,dnt,z10,gdf,z05,z15,gwc
+z30,jst,dnt,z10,gdf,z15,gwc,z05
+z30,jst,dnt,z10,gdf,z15,z05,gwc
+z30,jst,dnt,z10,gwc,z05,gdf,z15
+z30,jst,dnt,z10,gwc,z05,z15,gdf
+z30,jst,dnt,z10,gwc,z15,gdf,z05
+z30,jst,dnt,z10,gwc,z15,z05,gdf
+z30,jst,dnt,z10,z05,gdf,gwc,z15
+z30,jst,dnt,z10,z05,gdf,z15,gwc
+z30,jst,dnt,z10,z05,gwc,gdf,z15
+z30,jst,dnt,z10,z05,gwc,z15,gdf
+z30,jst,dnt,z10,z15,gdf,gwc,z05
+z30,jst,dnt,z10,z15,gdf,z05,gwc
+z30,jst,dnt,z10,z15,gwc,gdf,z05
+z30,jst,dnt,z10,z15,gwc,z05,gdf
+z30,jst,dnt,z15,gdf,z05,gwc,z10
+z30,jst,dnt,z15,gdf,z05,z10,gwc
+z30,jst,dnt,z15,gdf,z10,gwc,z05
+z30,jst,dnt,z15,gdf,z10,z05,gwc
+z30,jst,dnt,z15,gwc,z05,gdf,z10
+z30,jst,dnt,z15,gwc,z05,z10,gdf
+z30,jst,dnt,z15,gwc,z10,gdf,z05
+z30,jst,dnt,z15,gwc,z10,z05,gdf
+z30,jst,dnt,z15,z05,gdf,gwc,z10
+z30,jst,dnt,z15,z05,gdf,z10,gwc
+z30,jst,dnt,z15,z05,gwc,gdf,z10
+z30,jst,dnt,z15,z05,gwc,z10,gdf
+z30,jst,dnt,z15,z10,gdf,gwc,z05
+z30,jst,dnt,z15,z10,gdf,z05,gwc
+z30,jst,dnt,z15,z10,gwc,gdf,z05
+z30,jst,dnt,z15,z10,gwc,z05,gdf
+z30,jst,gdf,z05,dnt,z10,gwc,z15
+z30,jst,gdf,z05,dnt,z10,z15,gwc
+z30,jst,gdf,z05,dnt,z15,gwc,z10
+z30,jst,gdf,z05,dnt,z15,z10,gwc
+z30,jst,gdf,z05,gwc,z10,dnt,z15
+z30,jst,gdf,z05,gwc,z10,z15,dnt
+z30,jst,gdf,z05,gwc,z15,dnt,z10
+z30,jst,gdf,z05,gwc,z15,z10,dnt
+z30,jst,gdf,z05,z10,dnt,gwc,z15
+z30,jst,gdf,z05,z10,dnt,z15,gwc
+z30,jst,gdf,z05,z10,gwc,dnt,z15
+z30,jst,gdf,z05,z10,gwc,z15,dnt
+z30,jst,gdf,z05,z15,dnt,gwc,z10
+z30,jst,gdf,z05,z15,dnt,z10,gwc
+z30,jst,gdf,z05,z15,gwc,dnt,z10
+z30,jst,gdf,z05,z15,gwc,z10,dnt
+z30,jst,gdf,z10,dnt,z05,gwc,z15
+z30,jst,gdf,z10,dnt,z05,z15,gwc
+z30,jst,gdf,z10,dnt,z15,gwc,z05
+z30,jst,gdf,z10,dnt,z15,z05,gwc
+z30,jst,gdf,z10,gwc,z05,dnt,z15
+z30,jst,gdf,z10,gwc,z05,z15,dnt
+z30,jst,gdf,z10,gwc,z15,dnt,z05
+z30,jst,gdf,z10,gwc,z15,z05,dnt
+z30,jst,gdf,z10,z05,dnt,gwc,z15
+z30,jst,gdf,z10,z05,dnt,z15,gwc
+z30,jst,gdf,z10,z05,gwc,dnt,z15
+z30,jst,gdf,z10,z05,gwc,z15,dnt
+z30,jst,gdf,z10,z15,dnt,gwc,z05
+z30,jst,gdf,z10,z15,dnt,z05,gwc
+z30,jst,gdf,z10,z15,gwc,dnt,z05
+z30,jst,gdf,z10,z15,gwc,z05,dnt
+z30,jst,gdf,z15,dnt,z05,gwc,z10
+z30,jst,gdf,z15,dnt,z05,z10,gwc
+z30,jst,gdf,z15,dnt,z10,gwc,z05
+z30,jst,gdf,z15,dnt,z10,z05,gwc
+z30,jst,gdf,z15,gwc,z05,dnt,z10
+z30,jst,gdf,z15,gwc,z05,z10,dnt
+z30,jst,gdf,z15,gwc,z10,dnt,z05
+z30,jst,gdf,z15,gwc,z10,z05,dnt
+z30,jst,gdf,z15,z05,dnt,gwc,z10
+z30,jst,gdf,z15,z05,dnt,z10,gwc
+z30,jst,gdf,z15,z05,gwc,dnt,z10
+z30,jst,gdf,z15,z05,gwc,z10,dnt
+z30,jst,gdf,z15,z10,dnt,gwc,z05
+z30,jst,gdf,z15,z10,dnt,z05,gwc
+z30,jst,gdf,z15,z10,gwc,dnt,z05
+z30,jst,gdf,z15,z10,gwc,z05,dnt
+z30,jst,gwc,z05,dnt,z10,gdf,z15
+z30,jst,gwc,z05,dnt,z10,z15,gdf
+z30,jst,gwc,z05,dnt,z15,gdf,z10
+z30,jst,gwc,z05,dnt,z15,z10,gdf
+z30,jst,gwc,z05,gdf,z10,dnt,z15
+z30,jst,gwc,z05,gdf,z10,z15,dnt
+z30,jst,gwc,z05,gdf,z15,dnt,z10
+z30,jst,gwc,z05,gdf,z15,z10,dnt
+z30,jst,gwc,z05,z10,dnt,gdf,z15
+z30,jst,gwc,z05,z10,dnt,z15,gdf
+z30,jst,gwc,z05,z10,gdf,dnt,z15
+z30,jst,gwc,z05,z10,gdf,z15,dnt
+z30,jst,gwc,z05,z15,dnt,gdf,z10
+z30,jst,gwc,z05,z15,dnt,z10,gdf
+z30,jst,gwc,z05,z15,gdf,dnt,z10
+z30,jst,gwc,z05,z15,gdf,z10,dnt
+z30,jst,gwc,z10,dnt,z05,gdf,z15
+z30,jst,gwc,z10,dnt,z05,z15,gdf
+z30,jst,gwc,z10,dnt,z15,gdf,z05
+z30,jst,gwc,z10,dnt,z15,z05,gdf
+z30,jst,gwc,z10,gdf,z05,dnt,z15
+z30,jst,gwc,z10,gdf,z05,z15,dnt
+z30,jst,gwc,z10,gdf,z15,dnt,z05
+z30,jst,gwc,z10,gdf,z15,z05,dnt
+z30,jst,gwc,z10,z05,dnt,gdf,z15
+z30,jst,gwc,z10,z05,dnt,z15,gdf
+z30,jst,gwc,z10,z05,gdf,dnt,z15
+z30,jst,gwc,z10,z05,gdf,z15,dnt
+z30,jst,gwc,z10,z15,dnt,gdf,z05
+z30,jst,gwc,z10,z15,dnt,z05,gdf
+z30,jst,gwc,z10,z15,gdf,dnt,z05
+z30,jst,gwc,z10,z15,gdf,z05,dnt
+z30,jst,gwc,z15,dnt,z05,gdf,z10
+z30,jst,gwc,z15,dnt,z05,z10,gdf
+z30,jst,gwc,z15,dnt,z10,gdf,z05
+z30,jst,gwc,z15,dnt,z10,z05,gdf
+z30,jst,gwc,z15,gdf,z05,dnt,z10
+z30,jst,gwc,z15,gdf,z05,z10,dnt
+z30,jst,gwc,z15,gdf,z10,dnt,z05
+z30,jst,gwc,z15,gdf,z10,z05,dnt
+z30,jst,gwc,z15,z05,dnt,gdf,z10
+z30,jst,gwc,z15,z05,dnt,z10,gdf
+z30,jst,gwc,z15,z05,gdf,dnt,z10
+z30,jst,gwc,z15,z05,gdf,z10,dnt
+z30,jst,gwc,z15,z10,dnt,gdf,z05
+z30,jst,gwc,z15,z10,dnt,z05,gdf
+z30,jst,gwc,z15,z10,gdf,dnt,z05
+z30,jst,gwc,z15,z10,gdf,z05,dnt
+z30,jst,z05,dnt,gdf,z10,gwc,z15
+z30,jst,z05,dnt,gdf,z10,z15,gwc
+z30,jst,z05,dnt,gdf,z15,gwc,z10
+z30,jst,z05,dnt,gdf,z15,z10,gwc
+z30,jst,z05,dnt,gwc,z10,gdf,z15
+z30,jst,z05,dnt,gwc,z10,z15,gdf
+z30,jst,z05,dnt,gwc,z15,gdf,z10
+z30,jst,z05,dnt,gwc,z15,z10,gdf
+z30,jst,z05,dnt,z10,gdf,gwc,z15
+z30,jst,z05,dnt,z10,gdf,z15,gwc
+z30,jst,z05,dnt,z10,gwc,gdf,z15
+z30,jst,z05,dnt,z10,gwc,z15,gdf
+z30,jst,z05,dnt,z15,gdf,gwc,z10
+z30,jst,z05,dnt,z15,gdf,z10,gwc
+z30,jst,z05,dnt,z15,gwc,gdf,z10
+z30,jst,z05,dnt,z15,gwc,z10,gdf
+z30,jst,z05,gdf,dnt,z10,gwc,z15
+z30,jst,z05,gdf,dnt,z10,z15,gwc
+z30,jst,z05,gdf,dnt,z15,gwc,z10
+z30,jst,z05,gdf,dnt,z15,z10,gwc
+z30,jst,z05,gdf,gwc,z10,dnt,z15
+z30,jst,z05,gdf,gwc,z10,z15,dnt
+z30,jst,z05,gdf,gwc,z15,dnt,z10
+z30,jst,z05,gdf,gwc,z15,z10,dnt
+z30,jst,z05,gdf,z10,dnt,gwc,z15
+z30,jst,z05,gdf,z10,dnt,z15,gwc
+z30,jst,z05,gdf,z10,gwc,dnt,z15
+z30,jst,z05,gdf,z10,gwc,z15,dnt
+z30,jst,z05,gdf,z15,dnt,gwc,z10
+z30,jst,z05,gdf,z15,dnt,z10,gwc
+z30,jst,z05,gdf,z15,gwc,dnt,z10
+z30,jst,z05,gdf,z15,gwc,z10,dnt
+z30,jst,z05,gwc,dnt,z10,gdf,z15
+z30,jst,z05,gwc,dnt,z10,z15,gdf
+z30,jst,z05,gwc,dnt,z15,gdf,z10
+z30,jst,z05,gwc,dnt,z15,z10,gdf
+z30,jst,z05,gwc,gdf,z10,dnt,z15
+z30,jst,z05,gwc,gdf,z10,z15,dnt
+z30,jst,z05,gwc,gdf,z15,dnt,z10
+z30,jst,z05,gwc,gdf,z15,z10,dnt
+z30,jst,z05,gwc,z10,dnt,gdf,z15
+z30,jst,z05,gwc,z10,dnt,z15,gdf
+z30,jst,z05,gwc,z10,gdf,dnt,z15
+z30,jst,z05,gwc,z10,gdf,z15,dnt
+z30,jst,z05,gwc,z15,dnt,gdf,z10
+z30,jst,z05,gwc,z15,dnt,z10,gdf
+z30,jst,z05,gwc,z15,gdf,dnt,z10
+z30,jst,z05,gwc,z15,gdf,z10,dnt
+z30,jst,z10,dnt,gdf,z05,gwc,z15
+z30,jst,z10,dnt,gdf,z05,z15,gwc
+z30,jst,z10,dnt,gdf,z15,gwc,z05
+z30,jst,z10,dnt,gdf,z15,z05,gwc
+z30,jst,z10,dnt,gwc,z05,gdf,z15
+z30,jst,z10,dnt,gwc,z05,z15,gdf
+z30,jst,z10,dnt,gwc,z15,gdf,z05
+z30,jst,z10,dnt,gwc,z15,z05,gdf
+z30,jst,z10,dnt,z05,gdf,gwc,z15
+z30,jst,z10,dnt,z05,gdf,z15,gwc
+z30,jst,z10,dnt,z05,gwc,gdf,z15
+z30,jst,z10,dnt,z05,gwc,z15,gdf
+z30,jst,z10,dnt,z15,gdf,gwc,z05
+z30,jst,z10,dnt,z15,gdf,z05,gwc
+z30,jst,z10,dnt,z15,gwc,gdf,z05
+z30,jst,z10,dnt,z15,gwc,z05,gdf
+z30,jst,z10,gdf,dnt,z05,gwc,z15
+z30,jst,z10,gdf,dnt,z05,z15,gwc
+z30,jst,z10,gdf,dnt,z15,gwc,z05
+z30,jst,z10,gdf,dnt,z15,z05,gwc
+z30,jst,z10,gdf,gwc,z05,dnt,z15
+z30,jst,z10,gdf,gwc,z05,z15,dnt
+z30,jst,z10,gdf,gwc,z15,dnt,z05
+z30,jst,z10,gdf,gwc,z15,z05,dnt
+z30,jst,z10,gdf,z05,dnt,gwc,z15
+z30,jst,z10,gdf,z05,dnt,z15,gwc
+z30,jst,z10,gdf,z05,gwc,dnt,z15
+z30,jst,z10,gdf,z05,gwc,z15,dnt
+z30,jst,z10,gdf,z15,dnt,gwc,z05
+z30,jst,z10,gdf,z15,dnt,z05,gwc
+z30,jst,z10,gdf,z15,gwc,dnt,z05
+z30,jst,z10,gdf,z15,gwc,z05,dnt
+z30,jst,z10,gwc,dnt,z05,gdf,z15
+z30,jst,z10,gwc,dnt,z05,z15,gdf
+z30,jst,z10,gwc,dnt,z15,gdf,z05
+z30,jst,z10,gwc,dnt,z15,z05,gdf
+z30,jst,z10,gwc,gdf,z05,dnt,z15
+z30,jst,z10,gwc,gdf,z05,z15,dnt
+z30,jst,z10,gwc,gdf,z15,dnt,z05
+z30,jst,z10,gwc,gdf,z15,z05,dnt
+z30,jst,z10,gwc,z05,dnt,gdf,z15
+z30,jst,z10,gwc,z05,dnt,z15,gdf
+z30,jst,z10,gwc,z05,gdf,dnt,z15
+z30,jst,z10,gwc,z05,gdf,z15,dnt
+z30,jst,z10,gwc,z15,dnt,gdf,z05
+z30,jst,z10,gwc,z15,dnt,z05,gdf
+z30,jst,z10,gwc,z15,gdf,dnt,z05
+z30,jst,z10,gwc,z15,gdf,z05,dnt
+z30,jst,z15,dnt,gdf,z05,gwc,z10
+z30,jst,z15,dnt,gdf,z05,z10,gwc
+z30,jst,z15,dnt,gdf,z10,gwc,z05
+z30,jst,z15,dnt,gdf,z10,z05,gwc
+z30,jst,z15,dnt,gwc,z05,gdf,z10
+z30,jst,z15,dnt,gwc,z05,z10,gdf
+z30,jst,z15,dnt,gwc,z10,gdf,z05
+z30,jst,z15,dnt,gwc,z10,z05,gdf
+z30,jst,z15,dnt,z05,gdf,gwc,z10
+z30,jst,z15,dnt,z05,gdf,z10,gwc
+z30,jst,z15,dnt,z05,gwc,gdf,z10
+z30,jst,z15,dnt,z05,gwc,z10,gdf
+z30,jst,z15,dnt,z10,gdf,gwc,z05
+z30,jst,z15,dnt,z10,gdf,z05,gwc
+z30,jst,z15,dnt,z10,gwc,gdf,z05
+z30,jst,z15,dnt,z10,gwc,z05,gdf
+z30,jst,z15,gdf,dnt,z05,gwc,z10
+z30,jst,z15,gdf,dnt,z05,z10,gwc
+z30,jst,z15,gdf,dnt,z10,gwc,z05
+z30,jst,z15,gdf,dnt,z10,z05,gwc
+z30,jst,z15,gdf,gwc,z05,dnt,z10
+z30,jst,z15,gdf,gwc,z05,z10,dnt
+z30,jst,z15,gdf,gwc,z10,dnt,z05
+z30,jst,z15,gdf,gwc,z10,z05,dnt
+z30,jst,z15,gdf,z05,dnt,gwc,z10
+z30,jst,z15,gdf,z05,dnt,z10,gwc
+z30,jst,z15,gdf,z05,gwc,dnt,z10
+z30,jst,z15,gdf,z05,gwc,z10,dnt
+z30,jst,z15,gdf,z10,dnt,gwc,z05
+z30,jst,z15,gdf,z10,dnt,z05,gwc
+z30,jst,z15,gdf,z10,gwc,dnt,z05
+z30,jst,z15,gdf,z10,gwc,z05,dnt
+z30,jst,z15,gwc,dnt,z05,gdf,z10
+z30,jst,z15,gwc,dnt,z05,z10,gdf
+z30,jst,z15,gwc,dnt,z10,gdf,z05
+z30,jst,z15,gwc,dnt,z10,z05,gdf
+z30,jst,z15,gwc,gdf,z05,dnt,z10
+z30,jst,z15,gwc,gdf,z05,z10,dnt
+z30,jst,z15,gwc,gdf,z10,dnt,z05
+z30,jst,z15,gwc,gdf,z10,z05,dnt
+z30,jst,z15,gwc,z05,dnt,gdf,z10
+z30,jst,z15,gwc,z05,dnt,z10,gdf
+z30,jst,z15,gwc,z05,gdf,dnt,z10
+z30,jst,z15,gwc,z05,gdf,z10,dnt
+z30,jst,z15,gwc,z10,dnt,gdf,z05
+z30,jst,z15,gwc,z10,dnt,z05,gdf
+z30,jst,z15,gwc,z10,gdf,dnt,z05
+z30,jst,z15,gwc,z10,gdf,z05,dnt
+
+ */

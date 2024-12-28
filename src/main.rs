@@ -34,7 +34,7 @@ mod day20;
 mod day21;
 mod day22;
 mod day23;
-mod day24;
+//mod day24;
 mod day25;
 
 //use divoom::*;
@@ -194,14 +194,14 @@ fn main() {
         let day20_data  = tools::read_1d_string("data/day20.txt");
         day20::solve(&day20_data);
     }
- */
-/*
+    */
     {
         let _timer = Timer::new();
         let day21_data  = tools::read_1d_string("data/day21.txt");
         day21::solve(&day21_data);
     }
-    
+
+    /*
     
     {
         let _timer = Timer::new();
@@ -220,18 +220,18 @@ fn main() {
         //}).unwrap(); 
         //child.join().unwrap();
     }
-    */                        
-    /*                
+
     {
         let _timer = Timer::new();
         let day24_data  = tools::read_1d_string("data/day24.txt");
         day24::solve(&day24_data);       
     } 
-    */
-    
+    */                                
+        /*                
     {
         let _timer = Timer::new();
         let day25_data  = tools::read_1d_string("data/day25.txt");
         day25::solve(&day25_data);
     }
+*/
 }
