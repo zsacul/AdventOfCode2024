@@ -4,7 +4,7 @@ use timer::Timer;
 mod tools;
 //mod pixoo;
 mod dijkstria;
-//use std::thread;
+use std::thread;
 //mod cycliclist;
 //mod cyclic2;
 mod timer;
@@ -196,9 +196,19 @@ fn main() {
     }
     */
     {
-        let _timer = Timer::new();
-        let day21_data  = tools::read_1d_string("data/day21.txt");
-        day21::solve(&day21_data);
+        //let _timer = Timer::new();
+        //let day21_data  = tools::read_1d_string("data/day21.txt");
+        //day21::solve(&day21_data);
+
+        let child = thread::Builder::new().stack_size(132 * 1024 * 1024).spawn(move || { 
+            let _timer = Timer::new();
+            let day21_data  = tools::read_1d_string("data/day21.txt");
+            day21::solve(&day21_data);       
+        }).unwrap(); 
+        child.join().unwrap();
+
+
+
     }
 
     /*

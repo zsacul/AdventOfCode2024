@@ -140,14 +140,14 @@ struct AI
     robots:Vec<Robot>,
     code:Vec<char>,
     des:Vec<char>,
-    depth:usize,
+    depth:u8,
     big:HashMap<(char,char),Vec<String>>,
     small:HashMap<(char,char),Vec<String>>,
 }
 
 impl AI {
 
-    fn new(code:String,depth:usize)->AI
+    fn new(code:String,depth:u8)->AI
     {
         let mut robots = Vec::new();
         for i in 0..depth
@@ -336,9 +336,9 @@ impl AI {
     //<A<A^A<A^A>^^A<A^A>^^AvvvA
     //v<<A (<) >>^A (A) <A (^) >A (A) vA (>) <^A (^) A (^) >A (A) <vAAA>^A
 
-    fn bfs(&self,memo:&mut HashMap<(String,char,usize,String,usize),String>,pref:String,old_c:char,id:usize,des_code:String,level:usize)->String
+    fn bfs(&self,memo:&mut HashMap<(String,String),String>,pref:String,old_c:char,des_code:String,id:u8,level:u8)->String
     {
-        let key = (pref.clone(),old_c,id,des_code.clone(),level);
+        let key = (pref.clone(),des_code.clone());
 
         if memo.contains_key(&key)
         {
@@ -347,24 +347,22 @@ impl AI {
         // 029A
         // <A^A>^^AvvvA
 
-        if level==2
-        {
-         //   println!("lvl pref={} old_c={} des={} id={} lvl={}",pref,old_c,des_code,id,level);
-        }
-
         if level==self.depth
         {
             //println!("final pref={} old_c={} des={} id={} lvl={}",pref,old_c,des_code,id,level);
-
-            memo.insert(key, des_code.to_string());
+            //memo.insert(key, des_code.to_string());
             return des_code.to_string();
         }
 
         //println!("idL:{}/{}",id,des_code.len());
-        if id==des_code.len()
+        if id==des_code.len() as u8
         {
-            let rr = self.bfs(memo,"".to_string(),'A', 0, pref, level+1);
-            memo.insert(key, rr.clone());
+            let rr = self.bfs(memo,"".to_string(),'A',  pref, 0,level+1);
+
+            //if level<5
+            //{
+                memo.insert(key, rr.clone());
+            //}
             return rr;
         }
 
@@ -372,7 +370,7 @@ impl AI {
 
         let mut res = "".to_string();
         let mut min_l = usize::MAX;
-        let c = des_code.chars().nth(id).unwrap();               
+        let c = des_code.chars().nth(id as usize).unwrap();               
 
         let moves = self.small.get(&(old_c,c)).unwrap();
         //println!("moves: {}->{} = [{:?}]",old_c,c,moves);
@@ -382,7 +380,7 @@ impl AI {
         {
             let pref = format!("{}{}A",pref,m);
             //let v = format!("{}{}",pref.clone(), 
-            let v = self.bfs(memo,pref,c,id+1,des_code.to_string(),level);
+            let v = self.bfs(memo,pref,c,des_code.to_string(),id+1,level);
 
            // println!("[{},{}] v={}",level,id,v);
 
@@ -393,200 +391,26 @@ impl AI {
             }
         }          
 
-        memo.insert(key, res.clone());
+        //if level<5
+        {
+
+            memo.insert(key, res.clone());
+        }
         res
     }
 
-
-/*
-    fn bfsold(&mut self,des_code:String,level:usize)->String
-    {
-        let mut q = Vec::new();
-
-        let state = self.get_state();
-
-        if des_code.len()==1
-        {
-            return "".to_string();
-        }
-
-        for i in 0..des_code.len()
-        {
-            
-        }
-
-//        let moves = self.
-
-  //      println!("state {:?}",state);
-//        return "".to_string();
-
-        let mut visited = HashMap::new();
-
-        
-        let k2 = ('<',"".to_string(),"".to_string(),0,state.clone());
-        q.push(k2);
-        
-        let k3 = ('v',"".to_string(),"".to_string(),0,state.clone());
-        q.push(k3);
-
-        let k4 = ('>',"".to_string(),"".to_string(),0,state.clone());
-        q.push(k4);
-
-        let k0 = ('A',"".to_string(),"".to_string(),0,state.clone());
-        q.push(k0);
-
-        let k1 = ('^',"".to_string(),"".to_string(),0,state.clone());
-        q.push(k1);
-        
-
-        let mut best = usize::MAX;
-        let mut best_code = "".to_string();
-
-        let mut count=0;
-
-        while !q.is_empty()
-        {
-            let (dir,code,keys,cost,states) = q.remove(0);
-
-            let hkey = (dir,code.clone(),states.clone());
-
-            //println!("{} {:?}",count,hkey);
-            //count+=1;
-
-
-            if cost>=*visited.get(&hkey).unwrap_or(&88888888)
-            {
-                continue;
-            }
-
-            //warning
-            if cost>22
-            {
-                continue;
-            }
-            self.set_state(&states);
-
-
-            if !self.robots.clone().iter().all(|r| r.valid_at_pos())
-            {
-                //println!("keys {:?} dir: {} {:?}",keys,dir,states);
-                continue;
-            }
-
-            if code.len()>0 && !des_code.starts_with(&code)
-            {
-                //println!("not start {:?}",code);
-                continue;
-            }
-
-            if cost>=best
-            {
-                println!("greater cost");
-                continue;
-            }            
-
-            if des_code == code && cost<best
-            {                
-                best      = cost;
-                best_code = keys.clone();
-                continue;
-            }
-
-            if code.len()>=des_code.len()
-            {
-                println!("greater len");
-                continue;
-            }
-
-            let k = self.do_key(dir);
-
-            if k.1=='*'
-            {
-                continue;
-            }
-            
-            let nstate : Vec<Vec2> = self.get_state();
-            let mut ncode= code.clone();
-            
-            if k.0 && k.1!='*'
-            {
-                ncode += &k.1.to_string();
-
-                if k.1!='A'
-                {
-                    println!("append {} adding from state {} [{}] keys=[{}] {} = {:?}",k.1,dir,ncode.clone(),keys,cost,nstate.clone());
-                }                
-                
-            }
-            
-            visited.insert((dir,ncode.clone(),nstate.clone()),cost+1);
-
-            //println!("adding from state {} {} keys=[{}] {} = {:?}",dir,code,keys,cost,state);
-
-
-            if dir!='v'
-            {
-                let k2 = ('^',ncode.clone(),keys.clone()+"^",cost+1,nstate.clone());            
-                q.push(k2);
-            }
-
-            if dir!='>'
-            {
-                let k3 = ('<',ncode.clone(),keys.clone()+"<",cost+1,nstate.clone());
-                q.push(k3);
-            }
-
-            if dir!='^'
-            {
-                let k4 = ('v',ncode.clone(),keys.clone()+"v",cost+1,nstate.clone());
-                q.push(k4);            
-            }
-
-            if dir!='<'
-            {
-                let k5 = ('>',ncode.clone(),keys.clone()+">",cost+1,nstate.clone());            
-                q.push(k5);            
-            }
-
-            let k1 = ('A',ncode.clone(),keys.clone()+"A",cost+1,nstate.clone());            
-            q.push(k1);
-
-
-        }
-
-        best_code
-    }
-    */
    
 }
 
 fn ok(s:&str,second:bool)->usize
 {
     let s = s.replace("A", "*");
-    //let tab = s.split(" ").map(|a| a.parse().unwrap()).collect::<Vec<i32>>();
-    //let tab: Vec<String> = s.split(", ").map(|s| s.to_string()).collect();
+    let ai = AI::new(s.to_string(),if second {3} else {3});       
+    let mut memo = HashMap::new();
+    let code = ai.bfs(&mut memo,"".to_string(),'*',s.to_string(),0,0);
 
-    if second
-    {
-        0
-        //(0..tab.len()).any(|i|
-          //  valid(tab[..i].iter().chain(tab[i+1..].iter()).copied().collect())
-        //)
-    }    
-      else 
-    {      
-        let ai = AI::new(s.to_string(),3);       
-
-
-        let mut memo = HashMap::new();
-
-        
-
-        let code = ai.bfs(&mut memo,"".to_string(),'*',0,s.to_string(),0);
-
-        println!("{} -> {}",s,code);
-        points(s,code)
-    }
+    println!("{} -> {}",s,code);
+    points(s,code)
 }
 
 fn points(s:String,res:String)->usize
@@ -612,7 +436,7 @@ pub fn part2(data:&[String])->usize
 pub fn solve(data:&[String])
 {    
     println!("Day21");
-    println!("part1: {}",part1(data));
+    //println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
 
