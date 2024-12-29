@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use super::vec2::Vec2;
-use super::tools;
 
 #[derive(Debug,Clone)]
 struct Robot
@@ -170,6 +168,7 @@ impl AI {
     {
         let mut p = p;
         let wrong = if small {Vec2::new(0, 0)} else {Vec2::new(0, 3)};
+
         for _ in 0..dx.abs()
         {
             p.x+=dx.signum();
@@ -187,6 +186,7 @@ impl AI {
     {
         let mut p = p;
         let wrong = if small {Vec2::new(0, 0)} else {Vec2::new(0, 3)};
+
         for _ in 0..dy.abs()
         {
             p.y+=dy.signum();
@@ -335,35 +335,34 @@ impl AI {
     
     //<A<A^A<A^A>^^A<A^A>^^AvvvA
     //v<<A (<) >>^A (A) <A (^) >A (A) vA (>) <^A (^) A (^) >A (A) <vAAA>^A
+    // 029A
+    // <A^A>^^AvvvA
 
-    fn bfs(&self,memo:&mut HashMap<(String,String),String>,pref:String,old_c:char,des_code:String,id:u8,level:u8)->String
+    fn bfs(&mut self,memo:&mut HashMap<(char,String,u8),String>,pref:String,old_c:char,des_code:String,id:u16,level:u8)->String
     {
-        let key = (pref.clone(),des_code.clone());
+//      let key = (pref.clone(),des_code.clone());
+        let key = (old_c,des_code.clone(),if level>5 {5} else {level});      
 
         if memo.contains_key(&key)
         {
             return memo.get(&key).unwrap().to_string();
         }
-        // 029A
-        // <A^A>^^AvvvA
 
-        if level==self.depth
-        {
+        //if level==self.depth
+        //{
             //println!("final pref={} old_c={} des={} id={} lvl={}",pref,old_c,des_code,id,level);
             //memo.insert(key, des_code.to_string());
-            return des_code.to_string();
-        }
+          //  return des_code.to_string();
+        //}
 
         //println!("idL:{}/{}",id,des_code.len());
-        if id==des_code.len() as u8
+        if id==des_code.len() as u16
         {
-            let rr = self.bfs(memo,"".to_string(),'A',  pref, 0,level+1);
-
-            //if level<5
-            //{
-                memo.insert(key, rr.clone());
-            //}
-            return rr;
+            if level+1<self.depth
+            {
+                return self.bfs(memo,"".to_string(),'A',  pref, 0,level+1);
+            }
+            return pref;
         }
 
         //println!("{}/{}",level,self.depth);
@@ -372,7 +371,7 @@ impl AI {
         let mut min_l = usize::MAX;
         let c = des_code.chars().nth(id as usize).unwrap();               
 
-        let moves = self.small.get(&(old_c,c)).unwrap();
+        let moves = self.small.get(&(old_c,c)).unwrap().clone();
         //println!("moves: {}->{} = [{:?}]",old_c,c,moves);
 
         for m in moves.iter()
@@ -387,27 +386,35 @@ impl AI {
             if v.len()<min_l
             {
                 min_l = v.len();
-                res = v;
+                res   = v.clone();
             }
         }          
 
         //if level<5
-        {
-
+        //{
             memo.insert(key, res.clone());
-        }
+        //}
         res
     }
 
    
 }
 
+//138460,
+//344540,
+//851690,
+//2128420
+
+
+//
+
+
 fn ok(s:&str,second:bool)->usize
 {
     let s = s.replace("A", "*");
-    let ai = AI::new(s.to_string(),if second {3} else {3});       
+    let mut ai = AI::new(s.to_string(),if second {24} else {3});       
     let mut memo = HashMap::new();
-    let code = ai.bfs(&mut memo,"".to_string(),'*',s.to_string(),0,0);
+    let code = ai.bfs(&mut memo,"".to_string(),'*',s.clone(),0,0);
 
     println!("{} -> {}",s,code);
     points(s,code)
@@ -436,7 +443,7 @@ pub fn part2(data:&[String])->usize
 pub fn solve(data:&[String])
 {    
     println!("Day21");
-    //println!("part1: {}",part1(data));
+    println!("part1: {}",part1(data));
     println!("part2: {}",part2(data));
 }
 
@@ -462,6 +469,32 @@ fn test1()
     ];
     assert_eq!(part1(&v),126384);
 }
+
+
+#[test]
+fn test2()
+{
+    let v = vec![
+        "805A".to_string(),
+        "964A".to_string(),
+        "459A".to_string(),
+        "968A".to_string(),
+        "671A".to_string(),
+    ];
+    assert_eq!(part1(&v),278748);
+}
+
+
+#[test]
+fn test3()
+{
+    let v = vec![
+        "805A".to_string(),
+    ];
+    assert_eq!(part2(&v),0);
+}
+
+
 
 
 //029A: <vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A
