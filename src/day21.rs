@@ -1,166 +1,21 @@
 use std::collections::HashMap;
 use super::vec2::Vec2;
 
-#[derive(Debug,Clone)]
-struct Robot
-{
-    pos     : Vec2,        
-    buttons : HashMap<Vec2,char>,
-}
-
-impl Robot {
-
-    fn new(fin:bool,code:String )->Robot
-    {
-        let mut robot = Robot{
-            pos :  if fin {Vec2::new(2,3)} else {Vec2::new(2,0)},
-            buttons : HashMap::new()
-        };
-        robot.add_buttons(fin);
-
-        robot
-    }
-
-    fn add_buttons(&mut self,fin:bool)
-    {
-        if fin
-        {
-            self.buttons.insert(Vec2::new( 0, 0),'7');
-            self.buttons.insert(Vec2::new( 1, 0),'8');
-            self.buttons.insert(Vec2::new( 2, 0),'9');
-            self.buttons.insert(Vec2::new( 0, 1),'4');
-            self.buttons.insert(Vec2::new( 1, 1),'5');
-            self.buttons.insert(Vec2::new( 2, 1),'6');
-            self.buttons.insert(Vec2::new( 0, 2),'1');
-            self.buttons.insert(Vec2::new( 1, 2),'2');
-            self.buttons.insert(Vec2::new( 2, 2),'3');
-            
-            self.buttons.insert(Vec2::new( 1, 3),'0');
-            self.buttons.insert(Vec2::new( 2, 3),'*');
-        }
-          else
-        {
-            self.buttons.insert(Vec2::new( 1, 0),'^');
-            self.buttons.insert(Vec2::new( 2, 0),'A');
-            self.buttons.insert(Vec2::new( 0, 1),'<');
-            self.buttons.insert(Vec2::new( 1, 1),'v');
-            self.buttons.insert(Vec2::new( 2, 1),'>');
-        }
-    }
-
-    fn valid(&self,pos:Vec2)->bool
-    {
-        self.buttons.contains_key(&pos)
-    }
-
-    fn valid_at_pos(&self)->bool
-    {
-        self.valid(self.pos)        
-    }
-
-    fn valid_moves(&self)->Vec<Vec2>
-    {
-        let mut res = Vec::new();
-        for v in self.pos.around4()
-        {        
-            if self.valid(v)
-            {
-                res.push(v);
-            }
-        }
-        res
-    }
-
-    fn get_key(&self)->char
-    {
-        *self.buttons.get(&self.pos).unwrap()
-    }
-
-    fn get_offset(&self,c:char)->Vec2
-    {
-        match c
-        {
-            '^' => Vec2::new( 0,-1),
-            'v' => Vec2::new( 0, 1),
-            '<' => Vec2::new(-1, 0),
-            '>' => Vec2::new( 1, 0),
-            //'A' => Vec2::new( 1, 1),
-            _   => panic!("get_offset")
-        }
-    }
-
-    /*
-    fn press(&mut self)->Vec2
-    {     
-        if self.buttons.contains_key(&self.pos)
-        {
-            let k = *self.buttons.get(&self.pos).unwrap();
-
-            return self.get_offset(k);
-            //if k == 'A'
-            //{
-            //    return true
-            //}
-            //else
-            //{
-            //    self.pos = self.pos.addv();
-            //}
-        }
-        panic!("unable to press the key")
-        //false
-    }
-     */
-
-    fn press_key(&mut self,key:char)->(bool,char)
-    {           
-        let was_action = key=='A';
-
-        if !was_action
-        {
-            let off = self.get_offset(key);
-            self.pos = self.pos.addv(off);
-        }
-
-        if self.valid_at_pos()
-        {
-            (was_action,self.get_key())
-        }
-            else
-        {
-            (was_action,'*')
-        }
-    }
-
-}
 
 struct AI
 {
-    robots:Vec<Robot>,
-    code:Vec<char>,
-    des:Vec<char>,
-    depth:u8,
-    big:HashMap<(char,char),Vec<String>>,
+    depth:usize,
     small:HashMap<(char,char),Vec<String>>,
 }
 
 impl AI {
 
-    fn new(code:String,depth:u8)->AI
+    fn new(depth:usize)->AI
     {
-        let mut robots = Vec::new();
-        for i in 0..depth
-        {
-            robots.push(Robot::new(i == depth-1,code.clone()));
-        }
-        
         AI
         {
-            robots,
-            code:Vec::new(),
-            des:code.chars().collect(),
             depth,
-            big   : AI::short(false),
-            small : AI::short(true)
+            small : AI::short()
         }
     }
 
@@ -199,9 +54,6 @@ impl AI {
         }
         true
     }
-
-    //285840 too high
-
     
     fn add_pos(keys:String,small:bool,pos:&mut HashMap<char,Vec2>,map:&mut HashMap<(char,char),Vec<String>>)
     {
@@ -223,13 +75,13 @@ impl AI {
                     let mut moves = vec![];
                     if AI::possiblex(posa,del.x,del.y,small)
                     {
-                        moves.push([h.clone(),v.clone()].join(""));
+                        moves.push([h.clone(),v.clone(),"A".to_string()].join(""));
                     }
                     if AI::possibley(posa,del.y,del.x,small)
                     {
                         if v!=h
                         {
-                            let sec = [v.clone(),h.clone()].join("");
+                            let sec = [v.clone(),h.clone(),"A".to_string()].join("");
                             //if  moves[0]!=sec
                             {
                                 moves.push(sec);
@@ -244,11 +96,11 @@ impl AI {
     }
     
 
-    fn short(small:bool)->HashMap<(char,char),Vec<String>>
+    fn short()->HashMap<(char,char),Vec<String>>
     {
         let mut map = HashMap::new();
 
-        let mut keys = "".to_string();
+        //let mut keys = "".to_string();
         let mut pos = HashMap::new();
 
         //if small
@@ -256,6 +108,7 @@ impl AI {
             //keys = "^A<v>".to_string();
             pos.insert('^',Vec2::new( 1, 0));
             pos.insert('A',Vec2::new( 2, 0));
+
             pos.insert('<',Vec2::new( 0, 1));
             pos.insert('v',Vec2::new( 1, 1));
             pos.insert('>',Vec2::new( 2, 1));
@@ -266,12 +119,15 @@ impl AI {
             pos.insert('7',Vec2::new( 0, 0));
             pos.insert('8',Vec2::new( 1, 0));
             pos.insert('9',Vec2::new( 2, 0));
+
             pos.insert('4',Vec2::new( 0, 1));
             pos.insert('5',Vec2::new( 1, 1));
             pos.insert('6',Vec2::new( 2, 1));
+
             pos.insert('1',Vec2::new( 0, 2));
             pos.insert('2',Vec2::new( 1, 2));
             pos.insert('3',Vec2::new( 2, 2));
+
             pos.insert('0',Vec2::new( 1, 3));
             pos.insert('*',Vec2::new( 2, 3));
         }
@@ -280,54 +136,16 @@ impl AI {
         AI::add_pos("0123456789*".to_string(),false,&mut pos,&mut map);
 
 
-        map.insert(('*','*'), vec!["".to_string()]);
-        map.insert(('A','A'), vec!["".to_string()]);
-        map.insert(('^','^'), vec!["".to_string()]);
-        map.insert(('<','<'), vec!["".to_string()]);
-        map.insert(('v','v'), vec!["".to_string()]);
-        map.insert(('>','>'), vec!["".to_string()]);
+        map.insert(('*','*'), vec!["A".to_string()]);
+        map.insert(('A','A'), vec!["A".to_string()]);
+        map.insert(('^','^'), vec!["A".to_string()]);
+        map.insert(('<','<'), vec!["A".to_string()]);
+        map.insert(('v','v'), vec!["A".to_string()]);
+        map.insert(('>','>'), vec!["A".to_string()]);
 
         //println!("{:?}",map);
 
         map
-    }
-
-    fn do_key(&mut self,key:char)->(bool,char)
-    {
-        let mut id=0;
-        let mut action = true;
-
-        let mut key = key;
-
-        while action && id<self.robots.len()
-        {            
-            let (was_action,nkey) =  self.robots[id].press_key(key);
-
-            action = was_action;
-            key = nkey;
-
-            id+=1;
-        }
-
-        if id==self.robots.len()
-        {
-            return (true,key);//self.robots.last().unwrap().get_key());
-        }
-
-        (false,key)
-    }
-
-    fn get_state(&mut self)->Vec<Vec2>
-    {
-        self.robots.iter().map(|r| r.pos).collect()
-    }
-
-    fn set_state(&mut self,state:&Vec<Vec2>)
-    {
-        for i in 0..self.robots.len()
-        {
-            self.robots[i].pos = state[i];
-        }
     }
 
     //"029A".to_string(),
@@ -338,91 +156,227 @@ impl AI {
     // 029A
     // <A^A>^^AvvvA
 
-    fn bfs(&mut self,memo:&mut HashMap<(char,String,u8),String>,pref:String,old_c:char,des_code:String,id:u16,level:u8)->String
+  
+    fn bfs(&mut self,memo:&mut HashMap<(char,String,usize),String>,des:String,old_c:char,level:usize)->String
     {
-//      let key = (pref.clone(),des_code.clone());
-        let key = (old_c,des_code.clone(),if level>5 {5} else {level});      
+        let key = (old_c,des.clone(),level);//if level>5 {5} else {level});
 
-        if memo.contains_key(&key)
+        if memo.contains_key(&key) && level>0
         {
             return memo.get(&key).unwrap().to_string();
         }
-
-        //if level==self.depth
-        //{
-            //println!("final pref={} old_c={} des={} id={} lvl={}",pref,old_c,des_code,id,level);
-            //memo.insert(key, des_code.to_string());
-          //  return des_code.to_string();
-        //}
-
-        //println!("idL:{}/{}",id,des_code.len());
-        if id==des_code.len() as u16
+            
+        if level==self.depth
         {
-            if level+1<self.depth
-            {
-                return self.bfs(memo,"".to_string(),'A',  pref, 0,level+1);
-            }
-            return pref;
+            //  println!("finito {}: {} -> {}",level,des,pref);
+            return des;//pref.clone();
         }
+    
+        let  pieces = des.clone()
+                                      .split("")
+                                      .filter(|a|!a.is_empty())
+                                      .map(|a|a.to_string()).collect::<Vec<String>>();
+    
+    //  println!("l={} pieces: {:?}   pref={:?}",level,pieces,pref);
+        let mut last_c = old_c;//'A';
 
-        //println!("{}/{}",level,self.depth);
-
-        let mut res = "".to_string();
-        let mut min_l = usize::MAX;
-        let c = des_code.chars().nth(id as usize).unwrap();               
-
-        let moves = self.small.get(&(old_c,c)).unwrap().clone();
-        //println!("moves: {}->{} = [{:?}]",old_c,c,moves);
-
-        for m in moves.iter()
-        //let m = moves[0].to_string();
-        {
-            let pref = format!("{}{}A",pref,m);
-            //let v = format!("{}{}",pref.clone(), 
-            let v = self.bfs(memo,pref,c,des_code.to_string(),id+1,level);
-
-           // println!("[{},{}] v={}",level,id,v);
-
-            if v.len()<min_l
-            {
-                min_l = v.len();
-                res   = v.clone();
-            }
-        }          
-
-        //if level<5
+        //if "0123456789*".contains(last_c) && level>0
         //{
-            memo.insert(key, res.clone());
+         //   last_c = 'A';
         //}
-        res
+
+        let strs = 
+        pieces.iter().map(|el|
+        {
+                let c = el.chars().nth(0 as usize).unwrap();
+
+                if level<=1
+                {
+          //          println!("l=[{}] el=[{}] des=[{}] -> (from {} to {})",level,el,des,last_c,c);
+                }
+
+                //let cc = e.chars().next().unwrap();                
+                let moves = self.small.get(&(last_c,c)).unwrap().clone();
+                let mut res = "".to_string();
+                let mut min_l = usize::MAX;
+
+                //let m = moves[0].to_string();
+                for m in moves.iter()
+                {
+                    //let p = m.clone();//format!("{}A",m);
+                    // let v = format!("{}{}",pref.clone(), 
+                    //let v = self.bfs(memo,m.clone(),last_c,level+1);
+                    let v = self.bfs(memo,m.clone(),'A',level+1);
+                    // println!("[{},{}] v={}",level,id,v);
+                    let v_len = v.len();
+        
+                    if v_len<min_l
+                    {
+                        min_l = v_len;
+                        res   = v.clone();//format!("{}{}",p,v);
+                    }
+                }          
+
+                last_c = c;//el.chars().last().unwrap_or('A');
+                if last_c=='*'
+                {
+                    //last_c = 'A';
+                }
+
+                res
+            }
+    
+        ).collect::<Vec<String>>();
+        
+        /*
+        {
+            let mut p = p.to_string();
+
+            if p.len()>0
+            {
+                p.push('A');
+                let v = self.bfs(memo,c,id+1,level);
+                if v.len()<min_l
+                {
+                    min_l = v.len();
+                    res   = v.clone();
+                }
+            }
+        }
+*/
+
+
+//golden:
+
+//<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A
+//28x A
+//let moves = self.small.get(&(old_c,c)).unwrap().clone();
+        //println!("moves: {}->{} = [{:?}]",old_c,c,moves);
+        //let p = self.pref.clone();
+        let result = strs.join("").clone();
+        //if level==0
+        {
+            //println!("lev={} res={}",level,result);
+            //println!("{} -> {}",pref,result);
+        }
+        memo.insert(key, result.clone());
+        //}
+        result
     }
+
+
+      
+    fn bfsc(&mut self,memo:&mut HashMap<(String,usize),usize>,des:String,old_c:char,level:usize)->usize
+    {
+        let key = (des.clone(),level);//if level>5 {5} else {level});
+
+        if memo.contains_key(&key) && level>0
+        {
+            return *memo.get(&key).unwrap();
+        }
+            
+        if level==self.depth
+        {
+            //  println!("finito {}: {} -> {}",level,des,pref);
+            return des.len();//pref.clone();
+        }
+        
+        let  pieces = des.clone()
+                         .split("")
+                         .filter(|a|!a.is_empty())
+                         .map(|a|a.to_string()).collect::<Vec<String>>();
+    
+   
+    //  println!("l={} pieces: {:?}   pref={:?}",level,pieces,pref);
+        let mut last_c = old_c;//'A';
+
+        //if "0123456789*".contains(last_c) && level>0
+        //{
+         //   last_c = 'A';
+        //}
+
+        let strs = 
+        pieces.iter().map(|el|
+        {
+                let c = el.chars().nth(0 as usize).unwrap();
+
+                if level<=1
+                {
+          //          println!("l=[{}] el=[{}] des=[{}] -> (from {} to {})",level,el,des,last_c,c);
+                }
+
+                //let cc = e.chars().next().unwrap();                
+                let moves = self.small.get(&(last_c,c)).unwrap().clone();
+                let mut res = 0usize;
+                let mut min_l = usize::MAX;
+
+                //let m = moves[0].to_string();
+                for m in moves.iter()
+                {
+                    let v = self.bfsc(memo,m.clone(),'A',level+1);
+                    let v_len = v;
+        
+                    if v_len<min_l
+                    {
+                        min_l = v_len;
+                        res   = v;//.len();//format!("{}{}",p,v);
+                    }
+                }          
+
+                last_c = c;//el.chars().last().unwrap_or('A');
+                if last_c=='*'
+                {
+                    //last_c = 'A';
+                }
+
+                res
+            }
+    
+        ).collect::<Vec<usize>>();
+        
+
+        let result = strs.iter().sum();
+        //if level==0
+        {
+            //println!("lev={} res={}",level,result);
+            //println!("{} -> {}",pref,result);
+        }
+        memo.insert(key, result);
+        //}
+        result
+    }
+
 
    
 }
 
-//138460,
-//344540,
-//851690,
-//2128420
 
-
-//
 
 
 fn ok(s:&str,second:bool)->usize
 {
     let s = s.replace("A", "*");
-    let mut ai = AI::new(s.to_string(),if second {24} else {3});       
+    let mut ai = AI::new(if second {26} else {3});       
     let mut memo = HashMap::new();
-    let code = ai.bfs(&mut memo,"".to_string(),'*',s.clone(),0,0);
+
+    //let cc = s.chars()
+    //          .map(|f| f.to_string())   
+    //          .collect::<Vec<String>>()
+    //          .join("");
+
+    //println!("cc: {}",cc);
+    //ai.des_code = s.chars().collect();
+    //ai.pref = "".to_string();
+    //let code = ai.bfs(&mut memo,cc.clone(),'*',0);
+    let code = ai.bfsc(&mut memo,s.to_string(),'*',0);
 
     println!("{} -> {}",s,code);
     points(s,code)
 }
 
-fn points(s:String,res:String)->usize
+fn points(s:String,res:usize)->usize
 {
-   s[..s.len()-1].parse::<usize>().unwrap()*res.len()
+   s[..s.len()-1].parse::<usize>().unwrap()*res
 }
 
 pub fn part1(data:&[String])->usize
@@ -456,7 +410,6 @@ fn test0()
     assert_eq!(part1(&v),68*29);
 }
 
-
 #[test]
 fn test1()
 {
@@ -484,7 +437,6 @@ fn test2()
     assert_eq!(part1(&v),278748);
 }
 
-
 #[test]
 fn test3()
 {
@@ -493,9 +445,6 @@ fn test3()
     ];
     assert_eq!(part2(&v),0);
 }
-
-
-
 
 //029A: <vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A
 //029*: <vA<AA>>^AvAA<^A>Av<<A>>^AvA^A<vA>^Av<<A>^A>AAvA^Av<<A>A>^AAAvA<^A>A
@@ -512,4 +461,8 @@ fn test3()
 //379A: <v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
 //379*: v<<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>Av<<A>A>^AAAvA<^A>A
 
-
+//278748
+//47719830362864 too low
+//117842718368480 too low
+//291009083500026 wrong
+  
