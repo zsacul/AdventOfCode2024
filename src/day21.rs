@@ -1,22 +1,29 @@
 use std::collections::HashMap;
 use super::vec2::Vec2;
 
-
 struct AI
 {
-    depth:usize,
-    small:HashMap<(char,char),Vec<String>>,
+    depth    :usize,
+    small    :HashMap<(char,char),Vec<String>>,
+    positions:HashMap<char,Vec2>,
 }
 
-impl AI {
-
+impl AI 
+{
     fn new(depth:usize)->AI
     {
         AI
         {
             depth,
-            small : AI::short()
+            positions: HashMap::new(),
+            small    : HashMap::new(),
         }
+    }
+
+    fn finish(&mut self)
+    {
+        self.add_positions();
+        self.small = self.short();
     }
 
     fn possiblex(p:Vec2,dx:i64,dy:i64,small:bool)->bool
@@ -59,11 +66,12 @@ impl AI {
     {
         for a in 0..keys.len()
         {
+            let ac = keys.chars().nth(a).unwrap();
+
             for b in 0..keys.len()
             {
                 if a!=b
                 {
-                    let ac = keys.chars().nth(a).unwrap();
                     let bc = keys.chars().nth(b).unwrap();
                     let posa = *pos.get(&ac).unwrap();
                     let posb = *pos.get(&bc).unwrap();
@@ -73,93 +81,67 @@ impl AI {
                     let v = (if del.y>0 {"v"} else {"^"}).repeat(del.y.abs() as usize);
 
                     let mut moves = vec![];
+
+                    if AI::possibley(posa,del.x,del.y,small)
+                    {                        
+                            moves.push([v.clone(),h.clone(),"A".to_string()].join(""));                                                    
+                    }
+
                     if AI::possiblex(posa,del.x,del.y,small)
                     {
-                        moves.push([h.clone(),v.clone(),"A".to_string()].join(""));
-                    }
-                    if AI::possibley(posa,del.y,del.x,small)
-                    {
-                        if v!=h
+                        if v!=h && del.y!=0 && del.x!=0
                         {
-                            let sec = [v.clone(),h.clone(),"A".to_string()].join("");
-                            //if  moves[0]!=sec
-                            {
-                                moves.push(sec);
-                            }
+                            moves.push([h.clone(),v.clone(),"A".to_string()].join(""));
                         }
                     }
+
                     map.insert((ac,bc), moves);
                 }
             }
+
+            map.insert((ac,ac), vec!["A".to_string()]);
         }
 
     }
-    
 
-    fn short()->HashMap<(char,char),Vec<String>>
+    fn add_positions(&mut self)
+    {        
+        self.positions.insert('^',Vec2::new( 1, 0));
+        self.positions.insert('A',Vec2::new( 2, 0));
+
+        self.positions.insert('<',Vec2::new( 0, 1));
+        self.positions.insert('v',Vec2::new( 1, 1));
+        self.positions.insert('>',Vec2::new( 2, 1));
+
+        self.positions.insert('7',Vec2::new( 0, 0));
+        self.positions.insert('8',Vec2::new( 1, 0));
+        self.positions.insert('9',Vec2::new( 2, 0));
+
+        self.positions.insert('4',Vec2::new( 0, 1));
+        self.positions.insert('5',Vec2::new( 1, 1));
+        self.positions.insert('6',Vec2::new( 2, 1));
+
+        self.positions.insert('1',Vec2::new( 0, 2));
+        self.positions.insert('2',Vec2::new( 1, 2));
+        self.positions.insert('3',Vec2::new( 2, 2));
+
+        self.positions.insert('0',Vec2::new( 1, 3));
+        self.positions.insert('*',Vec2::new( 2, 3));
+    } 
+
+    fn short(&mut self)->HashMap<(char,char),Vec<String>>
     {
         let mut map = HashMap::new();
 
-        //let mut keys = "".to_string();
-        let mut pos = HashMap::new();
-
-        //if small
-        {
-            //keys = "^A<v>".to_string();
-            pos.insert('^',Vec2::new( 1, 0));
-            pos.insert('A',Vec2::new( 2, 0));
-
-            pos.insert('<',Vec2::new( 0, 1));
-            pos.insert('v',Vec2::new( 1, 1));
-            pos.insert('>',Vec2::new( 2, 1));
-        }
-//          else 
-        {
-            //keys = "0123456789A^<v>*".to_string();
-            pos.insert('7',Vec2::new( 0, 0));
-            pos.insert('8',Vec2::new( 1, 0));
-            pos.insert('9',Vec2::new( 2, 0));
-
-            pos.insert('4',Vec2::new( 0, 1));
-            pos.insert('5',Vec2::new( 1, 1));
-            pos.insert('6',Vec2::new( 2, 1));
-
-            pos.insert('1',Vec2::new( 0, 2));
-            pos.insert('2',Vec2::new( 1, 2));
-            pos.insert('3',Vec2::new( 2, 2));
-
-            pos.insert('0',Vec2::new( 1, 3));
-            pos.insert('*',Vec2::new( 2, 3));
-        }
-
-        AI::add_pos(      "A^<v>".to_string(),true ,&mut pos,&mut map);
-        AI::add_pos("0123456789*".to_string(),false,&mut pos,&mut map);
-
-
-        map.insert(('*','*'), vec!["A".to_string()]);
-        map.insert(('A','A'), vec!["A".to_string()]);
-        map.insert(('^','^'), vec!["A".to_string()]);
-        map.insert(('<','<'), vec!["A".to_string()]);
-        map.insert(('v','v'), vec!["A".to_string()]);
-        map.insert(('>','>'), vec!["A".to_string()]);
-
-        //println!("{:?}",map);
+        AI::add_pos(      "A^<v>".to_string(),true , &mut self.positions,&mut map);
+        AI::add_pos("0123456789*".to_string(),false, &mut self.positions,&mut map);
 
         map
     }
 
-    //"029A".to_string(),
-    //<A^A^^>AvvvA
-    
-    //<A<A^A<A^A>^^A<A^A>^^AvvvA
-    //v<<A (<) >>^A (A) <A (^) >A (A) vA (>) <^A (^) A (^) >A (A) <vAAA>^A
-    // 029A
-    // <A^A>^^AvvvA
-
-  
     fn bfs(&mut self,memo:&mut HashMap<(char,String,usize),String>,des:String,old_c:char,level:usize)->String
     {
-        let key = (old_c,des.clone(),level);//if level>5 {5} else {level});
+        let key = (old_c,des.clone(),level);
 
         if memo.contains_key(&key) && level>0
         {
@@ -168,8 +150,7 @@ impl AI {
             
         if level==self.depth
         {
-            //  println!("finito {}: {} -> {}",level,des,pref);
-            return des;//pref.clone();
+            return des;
         }
     
         let  pieces = des.clone()
@@ -177,98 +158,44 @@ impl AI {
                                       .filter(|a|!a.is_empty())
                                       .map(|a|a.to_string()).collect::<Vec<String>>();
     
-    //  println!("l={} pieces: {:?}   pref={:?}",level,pieces,pref);
-        let mut last_c = old_c;//'A';
-
-        //if "0123456789*".contains(last_c) && level>0
-        //{
-         //   last_c = 'A';
-        //}
+        let mut last_c = old_c;
 
         let strs = 
         pieces.iter().map(|el|
         {
                 let c = el.chars().nth(0 as usize).unwrap();
 
-                if level<=1
-                {
-          //          println!("l=[{}] el=[{}] des=[{}] -> (from {} to {})",level,el,des,last_c,c);
-                }
-
-                //let cc = e.chars().next().unwrap();                
                 let moves = self.small.get(&(last_c,c)).unwrap().clone();
                 let mut res = "".to_string();
                 let mut min_l = usize::MAX;
 
-                //let m = moves[0].to_string();
                 for m in moves.iter()
                 {
-                    //let p = m.clone();//format!("{}A",m);
-                    // let v = format!("{}{}",pref.clone(), 
-                    //let v = self.bfs(memo,m.clone(),last_c,level+1);
                     let v = self.bfs(memo,m.clone(),'A',level+1);
-                    // println!("[{},{}] v={}",level,id,v);
                     let v_len = v.len();
         
                     if v_len<min_l
                     {
                         min_l = v_len;
-                        res   = v.clone();//format!("{}{}",p,v);
+                        res   = v.clone();
                     }
                 }          
 
-                last_c = c;//el.chars().last().unwrap_or('A');
-                if last_c=='*'
-                {
-                    //last_c = 'A';
-                }
+                last_c = c;
 
                 res
             }
     
         ).collect::<Vec<String>>();
         
-        /*
-        {
-            let mut p = p.to_string();
-
-            if p.len()>0
-            {
-                p.push('A');
-                let v = self.bfs(memo,c,id+1,level);
-                if v.len()<min_l
-                {
-                    min_l = v.len();
-                    res   = v.clone();
-                }
-            }
-        }
-*/
-
-
-//golden:
-
-//<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A
-//28x A
-//let moves = self.small.get(&(old_c,c)).unwrap().clone();
-        //println!("moves: {}->{} = [{:?}]",old_c,c,moves);
-        //let p = self.pref.clone();
         let result = strs.join("").clone();
-        //if level==0
-        {
-            //println!("lev={} res={}",level,result);
-            //println!("{} -> {}",pref,result);
-        }
         memo.insert(key, result.clone());
-        //}
         result
     }
 
-
-      
-    fn bfsc(&mut self,memo:&mut HashMap<(String,usize),usize>,des:String,old_c:char,level:usize)->usize
+    fn bfsc(&mut self,memo:&mut HashMap<(String,char,usize),usize>,des:String,old_c:char,level:usize)->usize
     {
-        let key = (des.clone(),level);//if level>5 {5} else {level});
+        let key = (des.clone(),old_c,level);
 
         if memo.contains_key(&key) && level>0
         {
@@ -277,100 +204,95 @@ impl AI {
             
         if level==self.depth
         {
-            //  println!("finito {}: {} -> {}",level,des,pref);
-            return des.len();//pref.clone();
+            return des.len();
         }
         
         let  pieces = des.clone()
                          .split("")
                          .filter(|a|!a.is_empty())
                          .map(|a|a.to_string()).collect::<Vec<String>>();
-    
    
-    //  println!("l={} pieces: {:?}   pref={:?}",level,pieces,pref);
-        let mut last_c = old_c;//'A';
 
-        //if "0123456789*".contains(last_c) && level>0
-        //{
-         //   last_c = 'A';
-        //}
+        let mut last_c = old_c;
 
         let strs = 
         pieces.iter().map(|el|
         {
                 let c = el.chars().nth(0 as usize).unwrap();
-
-                if level<=1
-                {
-          //          println!("l=[{}] el=[{}] des=[{}] -> (from {} to {})",level,el,des,last_c,c);
-                }
-
-                //let cc = e.chars().next().unwrap();                
                 let moves = self.small.get(&(last_c,c)).unwrap().clone();
-                let mut res = 0usize;
-                let mut min_l = usize::MAX;
+                let mut res = 0usize;                
 
-                //let m = moves[0].to_string();
-                for m in moves.iter()
+                if moves.len()==1
                 {
-                    let v = self.bfsc(memo,m.clone(),'A',level+1);
-                    let v_len = v;
-        
-                    if v_len<min_l
+                    let m = moves[0].to_string();
+                    res = self.bfsc(memo,m.clone(),'A',level+1);
+                }
+                  else
+                {
+                    let f = *self.positions.get(&last_c).unwrap();
+                    let t = *self.positions.get(     &c).unwrap();
+
+                    let v = t.subv(f);
+                    let dx = v.x.signum();
+                    let dy = v.y.signum();
+
+                    let rr = if dx>0 {">".repeat(v.x as usize)} else {"<".repeat(-v.x as usize)};
+                    let uu = if dy>0 {"v".repeat(v.y as usize)} else {"^".repeat(-v.y as usize)};
+
+                    let small = level>0;
+
+                    let nmove = 
+                    match (dx,dy)
                     {
-                        min_l = v_len;
-                        res   = v;//.len();//format!("{}{}",p,v);
-                    }
-                }          
+                        (-1,-1)=>if AI::possiblex(f,v.x,v.y,small) { format!("{rr}{uu}A") } else { format!("{uu}{rr}A") },
+                        (-1, 1)=>if AI::possiblex(f,v.x,v.y,small) { format!("{rr}{uu}A") } else { format!("{uu}{rr}A") },
+                        ( 1, 1)=>if AI::possibley(f,v.x,v.y,small) { format!("{uu}{rr}A") } else { format!("{rr}{uu}A") },
+                        ( 1,-1)=>if AI::possibley(f,v.x,v.y,small) { format!("{uu}{rr}A") } else { format!("{rr}{uu}A") },
+                        ( _, 0)=>{format!("{rr}A")},
+                        ( 0, _)=>{format!("{uu}A")},
+                        _      => panic!("mov[{:?}] {} {}",moves,dx,dy),
+                    };
 
-                last_c = c;//el.chars().last().unwrap_or('A');
-                if last_c=='*'
-                {
-                    //last_c = 'A';
+                    res = self.bfsc(memo,nmove.clone(),'A',level+1);
                 }
 
+                last_c = c;
                 res
             }
     
         ).collect::<Vec<usize>>();
         
-
         let result = strs.iter().sum();
-        //if level==0
-        {
-            //println!("lev={} res={}",level,result);
-            //println!("{} -> {}",pref,result);
-        }
         memo.insert(key, result);
-        //}
+
         result
-    }
-
-
-   
+    } 
 }
 
 
-
-
-fn ok(s:&str,second:bool)->usize
+fn ok1(s:&str,depth:usize)->usize
 {
     let s = s.replace("A", "*");
-    let mut ai = AI::new(if second {26} else {3});       
+    let mut ai = AI::new(depth+1);
+    ai.finish();
     let mut memo = HashMap::new();
 
-    //let cc = s.chars()
-    //          .map(|f| f.to_string())   
-    //          .collect::<Vec<String>>()
-    //          .join("");
+    let code = ai.bfs(&mut memo,s.to_string(),'*',0);  
 
-    //println!("cc: {}",cc);
-    //ai.des_code = s.chars().collect();
-    //ai.pref = "".to_string();
-    //let code = ai.bfs(&mut memo,cc.clone(),'*',0);
+//  println!("{} -> {}",s,code.len());
+    points(s,code.len())
+}
+
+fn ok2(s:&str,depth:usize)->usize
+{
+    let s = s.replace("A", "*");
+    let mut ai = AI::new( depth+1);
+    ai.finish();
+    let mut memo = HashMap::new();
+
     let code = ai.bfsc(&mut memo,s.to_string(),'*',0);
 
-    println!("{} -> {}",s,code);
+//  println!("{} -> {}",s,code);
     points(s,code)
 }
 
@@ -382,14 +304,14 @@ fn points(s:String,res:usize)->usize
 pub fn part1(data:&[String])->usize
 {
    data.iter()
-       .map(|n| ok(n,false))
+       .map(|n| ok2(n,2))
        .sum()
 }
 
 pub fn part2(data:&[String])->usize
 {
    data.iter()
-       .map(|n| ok(n,true))
+       .map(|n| ok2(n,25))
        .sum()
 }
 
@@ -423,7 +345,6 @@ fn test1()
     assert_eq!(part1(&v),126384);
 }
 
-
 #[test]
 fn test2()
 {
@@ -436,33 +357,3 @@ fn test2()
     ];
     assert_eq!(part1(&v),278748);
 }
-
-#[test]
-fn test3()
-{
-    let v = vec![
-        "805A".to_string(),
-    ];
-    assert_eq!(part2(&v),0);
-}
-
-//029A: <vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A
-//029*: <vA<AA>>^AvAA<^A>Av<<A>>^AvA^A<vA>^Av<<A>^A>AAvA^Av<<A>A>^AAAvA<^A>A
-//
-//980A: <v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A
-//980*: v<<A>>^AAAvA^A<vA<AA>>^AvAA<^A>Av<<A>A>^AAAvA<^A>A<vA>^A<A>A
-//
-//179A: <v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
-//179*: <vA<AA>>^AAvA<^A>AvA^Av<<A>>^AAvA^A<vA>^AA<A>Av<<A>A>^AAAvA<^A>A
-//
-//456A: <v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A
-//456*: <vA<AA>>^AAvA<^A>AAvA^A<vA>^A<A>A<vA>^A<A>Av<<A>A>^AAvA<^A>A
-//
-//379A: <v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
-//379*: v<<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>Av<<A>A>^AAAvA<^A>A
-
-//278748
-//47719830362864 too low
-//117842718368480 too low
-//291009083500026 wrong
-  
