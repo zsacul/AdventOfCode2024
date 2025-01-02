@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use rand::Rng;
 
 #[derive(Debug,Clone,PartialEq, Eq,PartialOrd, Ord)]
 enum Operator
@@ -25,7 +24,7 @@ impl Gate
     {
         let v = s.split(" ").collect::<Vec<&str>>();
 
-        let mut ops = vec![v[0],v[2]];
+        let mut ops = [v[0],v[2]];
         ops.sort();
 
         let a = ops[0];
@@ -99,8 +98,7 @@ impl Gate
                 {
                     return Some(va.unwrap() ^ vb.unwrap());
                 }
-            },
-            _ => panic!("Unknown operator")
+            }
 
         }
 
@@ -111,10 +109,11 @@ impl Gate
 
 #[derive(Debug,Clone)]
 struct Data {
-    instr : HashMap<String,Gate>,    
-    vals  : HashMap<String,bool>,
-    instr_b: HashMap<String,Gate>,    
-    vals_b : HashMap<String,bool>,
+    instr        : HashMap<String,Gate>,    
+    vals         : HashMap<String,bool>,
+    instr_b      : HashMap<String,Gate>,    
+    vals_b       : HashMap<String,bool>,
+    possibilites : Vec<Vec<usize>>,
 }
 
 impl Data {
@@ -125,11 +124,11 @@ impl Data {
         let vals = sections[0].iter()
             .map(|line| {
                 let s = line.split(": ").collect::<Vec<&str>>();
-                (s[0].to_string(),if s[1]=="1" {true} else {false})
+                (s[0].to_string(),s[1]=="1")
             })
             .collect();
         
-        let instr  = sections[1].iter()
+        let instr = sections[1].iter()
             .map(|line| {
                     let s = line.split(" ").collect::<Vec<&str>>();
                     (s[4].to_string(), Gate::new(line))
@@ -140,10 +139,51 @@ impl Data {
             instr,
             vals,
             instr_b : HashMap::new(),
-            vals_b : HashMap::new(),
+            vals_b  : HashMap::new(),
+            possibilites : vec![],
         }
     }
 
+    fn gen_possibilities(&mut self)
+    {
+        let v = vec![0usize,1,2,3,4,5,6,7];
+        let all = v.clone().into_iter().permutations(8).count();
+        println!("all:{}",all);
+
+        let mut used = HashSet::new();
+        
+        v.into_iter().permutations(8).for_each(|per|
+            {
+                let mut p :Vec<usize> = per.into_iter().collect();
+                if p[0]>p[1] { let t = p[0]; p[0] = p[1]; p[1] = t; }
+                if p[2]>p[3] { let t = p[2]; p[2] = p[3]; p[3] = t; }
+                if p[4]>p[5] { let t = p[4]; p[4] = p[5]; p[5] = t; }
+                if p[6]>p[7] { let t = p[6]; p[6] = p[7]; p[7] = t; }
+
+                for a in 0..4
+                {
+                    for b in a+1..4
+                    {
+                        if p[2*a]>p[2*b]
+                        {
+                            let t = p[2*a  ]; p[2*a  ] = p[2*b  ]; p[2*b  ] = t;
+                            let t = p[2*a+1]; p[2*a+1] = p[2*b+1]; p[2*b+1] = t;
+                        }
+                    }
+
+                    if !used.contains(&p)
+                    {
+                        used.insert(p.clone());
+                        self.possibilites.push(p.clone());
+                        //println!("{:?}",p);
+                    }
+                }
+            }
+        );  
+
+        println!("good:{}",self.possibilites.len());
+    }
+    
     fn get_v(&self,n:String)->Option<bool>
     {
         if self.vals.contains_key(&n)
@@ -167,6 +207,34 @@ impl Data {
              .sum()
     }
 
+    fn set_number(&mut self,c:char,v:usize)
+    {
+        for i in 0..=44
+        {
+            let s = format!("{}{:02}",c,i);
+            self.vals.insert(s, (v&(1<<i))!=0);
+        }
+
+         //self.vals
+         //    .iter()
+         //    .filter(|(k,&v)| k.starts_with(c) && v)
+         //    .map(|z| 1<<z.0[1..].parse::<usize>().unwrap())
+         //    .sum()
+    }
+
+    fn perms(&self,s:Vec<String>)->Vec<Vec<String>>
+    {
+        let mut res = vec![];
+        for p in self.possibilites.iter()
+        {
+            let  r = p.iter()            
+                                   .map(|&v| s[v].to_string())
+                                   .collect::<Vec<String>>();
+            res.push(r);           
+        }
+        res
+    }
+
 
     fn count1(&mut self)->usize
     {
@@ -183,7 +251,7 @@ impl Data {
                 {
                     let va = self.get_v(v.a.clone());
                     let vb = self.get_v(v.b.clone());
-                    let res = v.evaluate(va,vb);
+                    let res= v.evaluate(va,vb);
 
                     if res.is_some()
                     {
@@ -204,33 +272,10 @@ impl Data {
 
     fn swap(&mut self,a:String,b:String)
     {     
-        let t =  self.instr.get(&a).unwrap().out.clone();
+        let                       t = self.instr.get(&a).unwrap().out.clone();
         self.instr.get_mut(&a).unwrap().out = self.instr.get(&b).unwrap().out.clone();
         self.instr.get_mut(&b).unwrap().out = t;
-        //let mut aa = self.instr.get(&a).unwrap().clone();
-        //let mut bb = self.instr.get(&b).unwrap().clone();
-        //let ts = aa.out.clone();
-        //aa.out = bb.out.clone();
-        //bb.out = ts;
-
-        
-        //let t  = aa;
-        //self.instr.insert(a, bb);
-        //self.instr.insert(b, t);
     }
-
-    fn name(&self,o:Operator)->String
-    {
-        match o
-        {
-            Operator::And => "AND".to_string(),
-            Operator::Or  => "OR".to_string(),
-            Operator::Xor => "XOR".to_string(),
-        }
-    }
-
-    //Day24
-    //part1: 47666458872582
 
     fn is(&self,s:String,z:char)->bool
     {
@@ -239,33 +284,33 @@ impl Data {
 
     fn check(&mut self,s:Vec<String>)->bool
     {
-        self.instr = self.instr_b.clone();
-        self.vals = self.vals_b.clone();
+//        self.instr = self.instr_b.clone();
+        self.vals  = self.vals_b.clone();
         
         self.swap(s[0].clone(),s[1].clone());
         self.swap(s[2].clone(),s[3].clone());
         self.swap(s[4].clone(),s[5].clone());
         self.swap(s[6].clone(),s[7].clone());
         
-        let x = self.number('x');
-        let y = self.number('y');
+        let ox = self.number('x');
+        let oy = self.number('y');
 
         let c = self.count1();
         
-        if x+y==c
+        if ox+oy!=c
         {
-            let res = s.join(",");
-            println!("{}",res);
-            return true;
+            self.swap(s[0].clone(),s[1].clone());
+            self.swap(s[2].clone(),s[3].clone());
+            self.swap(s[4].clone(),s[5].clone());
+            self.swap(s[6].clone(),s[7].clone());
+            return false;
         }
-
-        //self.swap(s[0].clone(),s[1].clone());
-        //self.swap(s[2].clone(),s[3].clone());
-        //self.swap(s[4].clone(),s[5].clone());
-        //self.swap(s[6].clone(),s[7].clone());
-
         
-        false
+        
+        let res = s.join(",");
+        println!("{}",res);
+        
+        true
     }
 
     fn count2(&mut self)->String
@@ -307,19 +352,18 @@ impl Data {
         println!("qq:{:#?}",qq);
         println!("len:{}",qq.len());
 
-
-        let outs = self.instr.iter().map(|(k,g)| g.out.clone() ).collect::<Vec<String>>();
+        let mut outs = self.instr.iter().map(|(k,g)| g.out.clone() ).collect::<Vec<String>>();
+        outs.sort();
         let mut id=0;
 
         self.instr_b = self.instr.clone();
-        self.vals_b = self.vals.clone();
+        self.vals_b  = self.vals.clone();
 
-
-
-        for a in 0..outs.len()
+        for a in 43..outs.len()
         {
             if !qq.contains(&outs[a])
             {
+                eprint!("qa: {} ",a);
                 for b in a+1..outs.len()
                 {
                     if !qq.contains(&outs[b])
@@ -333,24 +377,27 @@ impl Data {
 
                             let mut u=0;
 
-                            for e in qa.into_iter().permutations(8)
+                            //qa.iter().permutations(8)
+                            
+                            for e in self.perms(qa.clone())
                             {
-                                if self.check(e.clone())
+                                if self.check(e)
                                 {
+                                    return qa.clone().join( ",");
                                     //return e.clone().join(",");                                  
                                 }
                                 u+=1;
                             }
-
+                            
 
                             //return "".to_string();
                             
-                            //println!("qa: {}/{} {}",id,outs.len()*outs.len(),u);
                             id+=1;
-                            
                         }                        
+                        eprint!(".");                        
                     }
                 }
+                println!();
              
             }
         }
@@ -532,7 +579,9 @@ pub fn part1(data:&[String])->usize
 
 pub fn part2(data:&[String])->String
 {
-    Data::new(data).count2()
+    let mut data = Data::new(data);
+    data.gen_possibilities();
+    data.count2()
 }
 
 #[allow(unused)]
@@ -646,8 +695,12 @@ fn test3()
     
 
 //dnt,gdf,gwc,jst,z05,z10,z15,z30 - wrong
+//dnt,gdf,gwc,jst,tdw,z05,z15, - wrong (6,61)
 
 /*
+qa: 25/81 
+dnt,hrq,gwc,z05,jst,z15,z11,z30
+part2: dnt,gwc,hrq,jst,z05,z11,z15,z30
 
 z30,dnt,jst,z10,z15,gwc,gdf,z05
 z30,dnt,jst,z10,z15,gwc,z05,gdf
@@ -1675,5 +1728,9 @@ z30,jst,z15,gwc,z10,dnt,gdf,z05
 z30,jst,z15,gwc,z10,dnt,z05,gdf
 z30,jst,z15,gwc,z10,gdf,dnt,z05
 z30,jst,z15,gwc,z10,gdf,z05,dnt
+
+qa: 42 ..............................................................................................................................................................................
+qa: 43 .....................dnt,hrq,gdf,z05,gwc,z15,jst,z30
+part2: dnt,gdf,gwc,hrq,jst,z05,z15,z30
 
  */

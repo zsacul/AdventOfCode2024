@@ -86,7 +86,7 @@ impl Data {
         let locks : Vec<(bool,Vec<i32>)> =  
         self.keys
             .iter()
-            .filter(|(is_key,key)| *is_key==false )
+            .filter(|(is_key,key)| !(*is_key) )
             .map(|f|f.clone())   
             .collect();
 
@@ -95,7 +95,7 @@ impl Data {
             {
                 for l in locks.iter()
                 {
-                    if Data::fit(&k,&l)
+                    if Data::fit(&k,l)
                     {
                         res+=1;
                     }
